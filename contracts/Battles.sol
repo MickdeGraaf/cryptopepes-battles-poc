@@ -19,24 +19,25 @@ contract Battles {
         bytes32 randomHash;
     }
 
-    Battle[] public battles;
+    mapping (uint256 => Battle) public battles;
     uint256 battleCounter;
-    Battle[] public pendingBattles;
-    uint256 pendingBattleCounter;
 
     struct Battle {
         Player[] players;
         uint256 stakePerPlayer;
         address lastPlayerMoved;
         uint256 turnCounter;
+        bool active;
     }
 
     event NewBattle(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256[] pepes, uint256 stake);
     event BattleStarted(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256 stake);
 
     function newBattle(uint256[] _pepes, bytes32 _randomHash, address _oponent) payable public {
-        Battle storage battle = pendingBattles[pendingBattleCounter];
-        pendingBattleCounter += 1;
+        Battle storage battle = battles[battleCounter];
+        battleCounter += 1;
+
+        battle.players.length = 2;
 
         battle.players[0].playerAddress = msg.sender;
         battle.players[1].playerAddress = _oponent;
@@ -48,13 +49,13 @@ contract Battles {
 
         battle.stakePerPlayer = msg.value;
 
-        emit NewBattle(pendingBattleCounter - 1, msg.sender, _oponent, _pepes, msg.value);
+        emit NewBattle(battleCounter - 1, msg.sender, _oponent, _pepes, msg.value);
     }
 
     function joinBattle(uint256 _battle, uint256[] _pepes, bytes32 _randomHash) payable public {
+        Battle storage battle = battles[_battle];
         require(battle.players[1].playerAddress == msg.sender || battle.players[1].playerAddress == address(0));
-
-        Battle storage battle = pendingBattles[_battle];
+        require(battle.active == false);
 
         if(battle.players[1].playerAddress != msg.sender) {
           battle.players[1].playerAddress = msg.sender;
@@ -69,13 +70,9 @@ contract Battles {
             battle.players[1].pepes.push(BattlePep(_pepes[i], 10000));
         }
 
-        battles[battleCounter] = battle;
-        battleCounter += 1;
+        battle.active = true;
 
-        delete(pendingBattles[_battle]);
-
-        emit BattleStarted(battleCounter - 1, battle.players[0].playerAddress, msg.sender, msg.value);
-        delete(pendingBattles[_battle]);
+        emit BattleStarted(_battle, battle.players[0].playerAddress, msg.sender, msg.value);
     }
 
     function submitMove(uint256 _battle, bytes32 _moveHash) public {
@@ -142,7 +139,7 @@ contract Battles {
             uint256 selectedPepe = battle.players[oponent].selectedPepe;
             uint256 oponentPepeHealth = battle.players[oponent].pepes[selectedPepe].health;
 
-            uint256 damage = 10 + 10 % uint256(battle.players[oponent].randomHash);
+            uint256 damage = 10 + uint256(battle.players[oponent].randomHash) % 10;
 
             if(damage > oponentPepeHealth) { //if oponent pepe dies with this blow
                 battle.players[oponent].pepes[selectedPepe].health = 0;
