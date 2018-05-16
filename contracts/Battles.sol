@@ -11,11 +11,11 @@ contract Battles {
     struct Player {
         address playerAddress;
         BattlePep[] pepes;
-        uint8 selectedPepe;
         bool submited;
         bool revealed;
         bytes32 moveHash;
         uint8 move;
+        uint8 selectedPepe;
         bytes32 randomHash;
     }
 
@@ -32,6 +32,8 @@ contract Battles {
 
     event NewBattle(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256[] pepes, uint256 stake);
     event BattleStarted(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256 stake);
+
+    ///// hoe stuur je _pepes mee? voor onze test. en uiteindelijk ? dit wordt een contact op onze parity chain. dus dan zou je web3.send (contr addrs) (pepe token?)
 
     function newBattle(uint256[] _pepes, bytes32 _randomHash, address _oponent) payable public {
         Battle storage battle = battles[battleCounter];
@@ -76,36 +78,38 @@ contract Battles {
     }
 
     function submitMove(uint256 _battle, bytes32 _moveHash) public {
+      // make something to check if move is already submitted ?
         Battle storage battle = battles[_battle];
         uint8 player = getPlayerOneOrTwo(_battle, msg.sender);
 
         require(battle.players[player].submited == false);
-        battle.players[player].moveHash = _moveHash;
+        battle.players[player].moveHash = _moveHash; // movehash is a int? or a hash? @revealMove we got another _move?
         battle.players[player].submited = true;
     }
 
     function revealMove(uint256 _battle, uint8 _move, bytes32 _nextHash) public {
+      //
         Battle storage battle = battles[_battle];
         uint8 player = getPlayerOneOrTwo(_battle, msg.sender);
 
-        require(battle.players[player].randomHash == keccak256(_nextHash)); //check if new hash is correct
+        require(battle.players[player].randomHash == keccak256(_nextHash)); //check if new hash is correct  // what is _nextHash? where do we get this. why would it be equal to randomHash?
         require(battle.players[player].submited == true);
-        require(battle.players[player].moveHash == keccak256(_move, _nextHash));
+        require(battle.players[player].moveHash == keccak256(_move, _nextHash)); // moveHash from submit move should be equal to the _move with _nextHash? so we submit move twice?
         battle.players[player].move = _move;
-        battle.players[player].randomHash = _nextHash;
-        battle.players[player].revealed = true;
+        battle.players[player].randomHash = _nextHash; //does this needs to be returned to the player?
+        battle.players[player].revealed = true; // should we not make a check if both revealed and call doTurn automaticly?
     }
 
-    function doTurn(uint256 _battle) public {
+    function doTurn(uint256 _battle) public { //who calls doTurn and revealMove?
         Battle storage battle = battles[_battle];
         require(battle.players[0].revealed == true);
         require(battle.players[1].revealed == true); //both players need to have revealed previously
 
         uint8 playerFirst = uint8(battle.turnCounter % 2);
-        uint8 playerSeccond = uint8((battle.turnCounter + 1) % 2);
+        uint8 playerSecond = uint8((battle.turnCounter + 1) % 2); // second is with one C
 
         doMove(_battle, playerFirst);
-        doMove(_battle, playerSeccond);
+        doMove(_battle, playerSecond);
 
         battle.players[0].revealed = false;
         battle.players[0].submited = false;
@@ -146,7 +150,8 @@ contract Battles {
                 autoSwitchPepe(_battle, oponent);
             }
             else { //else deduct damage from health
-                battle.players[oponent].pepes[selectedPepe].health -= damage;
+                battle.players[oponent].pepes[selectedPepe].health -= damage; // emit some event or web3 has to "fetch" the new health?
+                // external view function to get current battle state and pepe's health? 
             }
         }
 
@@ -156,8 +161,8 @@ contract Battles {
         Battle storage battle = battles[_battle];
         for(uint256 i = 0; i < battle.players[_player].pepes.length; i ++) {
             if(battle.players[_player].pepes[i].health > 0) {
-               battle.players[_player].selectedPepe = uint8(i);
-               return;
+               battle.players[_player].selectedPepe = uint8(i); // do we need some sort of getPepe by id?
+               return; // if no new pepe. continue to handle loss.
             }
         }
         handleLoss(_battle, _player);
@@ -176,6 +181,7 @@ contract Battles {
 
         if(!battle.players[winner].playerAddress.send(battle.stakePerPlayer * 2)) {
           //nothing;
+          // is this for when sending fails?
         }
     }
 
@@ -185,7 +191,7 @@ contract Battles {
         if(battle.players[0].playerAddress == _player) {
           return 0;
         }
-        else if(battle.players[0].playerAddress == _player) {
+        else if(battle.players[1].playerAddress == _player) { // check array at 1. not 0.
           return 1;
         }
         else {
