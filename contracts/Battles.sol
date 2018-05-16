@@ -35,6 +35,9 @@ contract Battles {
 
     ///// hoe stuur je _pepes mee? voor onze test. en uiteindelijk ? dit wordt een contact op onze parity chain. dus dan zou je web3.send (contr addrs) (pepe token?)
 
+    /// not in the smart contract yet as it is still a proof of concept. I need to update crypto pepes base contract to support latest erc721 spec.
+    // You might not even have to send the pepes but just check if this person is owner of them or is allowed to battle with them by the owner
+
     function newBattle(uint256[] _pepes, bytes32 _randomHash, address _oponent) payable public {
         Battle storage battle = battles[battleCounter];
         battleCounter += 1;
@@ -79,9 +82,9 @@ contract Battles {
 
     function submitMove(uint256 _battle, bytes32 _moveHash) public {
       // make something to check if move is already submitted ?
+      // this is done by require(battle.players[player].submited == false);
         Battle storage battle = battles[_battle];
         uint8 player = getPlayerOneOrTwo(_battle, msg.sender);
-
         require(battle.players[player].submited == false);
         battle.players[player].moveHash = _moveHash; // movehash is a int? or a hash? @revealMove we got another _move?
         battle.players[player].submited = true;
@@ -93,14 +96,24 @@ contract Battles {
         uint8 player = getPlayerOneOrTwo(_battle, msg.sender);
 
         require(battle.players[player].randomHash == keccak256(_nextHash)); //check if new hash is correct  // what is _nextHash? where do we get this. why would it be equal to randomHash?
+        //_nextHash is submitted as a parameter and is the next hash in the hashchain
         require(battle.players[player].submited == true);
         require(battle.players[player].moveHash == keccak256(_move, _nextHash)); // moveHash from submit move should be equal to the _move with _nextHash? so we submit move twice?
+        //the move is submitted by submitting the hash. It is submitted once and revealed once
         battle.players[player].move = _move;
         battle.players[player].randomHash = _nextHash; //does this needs to be returned to the player?
+        //the player already knows this as he submitted it
         battle.players[player].revealed = true; // should we not make a check if both revealed and call doTurn automaticly?
+        //yes lets do that! It creates an incentive to submit moves fast as it saves tx fee to be the first
+
+        if(battle.players[getOpponent(player)].revealed) { //if other player submitted do turn
+            doTurn(_battle);
+        }
+
     }
 
     function doTurn(uint256 _battle) public { //who calls doTurn and revealMove?
+        //reveal move needs to be called by each player, doTurn now gets called by the last player revealing
         Battle storage battle = battles[_battle];
         require(battle.players[0].revealed == true);
         require(battle.players[1].revealed == true); //both players need to have revealed previously
@@ -150,8 +163,8 @@ contract Battles {
                 autoSwitchPepe(_battle, oponent);
             }
             else { //else deduct damage from health
-                battle.players[oponent].pepes[selectedPepe].health -= damage; // emit some event or web3 has to "fetch" the new health?
-                // external view function to get current battle state and pepe's health? 
+                battle.players[oponent].pepes[selectedPepe].health -= damage; // emit some event or web3 has to "fetch" the new health? //yes we need that
+                // external view function to get current battle state and pepe's health? //yes we need that
             }
         }
 
@@ -182,6 +195,16 @@ contract Battles {
         if(!battle.players[winner].playerAddress.send(battle.stakePerPlayer * 2)) {
           //nothing;
           // is this for when sending fails?
+          //yes so players cannot halt battles locking funds via a smart contract
+        }
+    }
+
+    function getOpponent(uint8 _player) returns(uint8 oponent) {
+        if(_player == 0){
+          oponent = 1;
+        }
+        else {
+          oponent = 0;
         }
     }
 
