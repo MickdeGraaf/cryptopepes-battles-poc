@@ -79,16 +79,104 @@ contract BattlesState {
     // constructor
   }
 
-  function move(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public {
+  function submitMove(uint256 _battle, bytes32 _hash) internal {
+      Battle storage battle = battles[_battle];
+      uint8 player = getPlayerOneOrTwo(_battle, msg.sender);
+      battle.players[player].moveHash = _hash; // movehash is a int? or a hash? @revealMove we got another _move?
+  }
 
-      require(_seq - 1 % 2 == getPlayerOneOrTwo(msg.sender));
+
+  function revealMove(uint256 _battle, bytes32 _hash, uint8 _move) internal {
+      Battle storage battle = battles[_battle];
+      uint8 player = getPlayerOneOrTwo(_battle, msg.sender);
+
+      require(battle.players[player].randomHash == keccak256(_hash)); //check if new hash is correct  // what is _nextHash? where do we get this. why would it be equal to randomHash?
+      //_nextHash is submitted as a parameter and is the next hash in the hashchain
+      require(battle.players[player].moveHash == keccak256(_move, _hash)); // moveHash from submit move should be equal to the _move with _nextHash? so we submit move twice?
+      //the move is submitted by submitting the hash. It is submitted once and revealed once
+      battle.players[player].move = _move;
+      battle.players[player].randomHash = _hash; //does this needs to be returned to the player?
+      //the player already knows this as he submitted it
+      //yes lets do that! It creates an incentive to submit moves fast as it saves tx fee to be the first
+
+      if(battle.seq % 4 == 0) { //if other player submitted do turn
+          doTurn(_battle);
+      }
+  }
+
+  function doTurn(uint256 _battle) internal { //who calls doTurn and revealMove?
+      //reveal move needs to be called by each player, doTurn now gets called by the last player revealing
+      Battle storage battle = battles[_battle];
+
+      uint8 playerFirst = uint8(battle.turnCounter % 2);
+      uint8 playerSecond = uint8((battle.turnCounter + 1) % 2); // second is with one C
+
+      doMove(_battle, playerFirst);
+      doMove(_battle, playerSecond);
+
+
+  }
+
+  function doMove(uint256 _battle, uint8 _player) internal {
+      Battle storage battle = battles[_battle];
+      uint8 move = battle.players[_player].move;
+      uint8 oponent;
+      if(_player == 0){
+        oponent = 1;
+      }
+      else {
+        oponent = 0;
+      }
+
+      if(move > 9){ //if the player is switching pepe
+          uint8 pepeSelected = move - 10;
+          if(pepeSelected > battle.players[_player].pepes.length || battle.players[_player].pepes[pepeSelected].health == 0) {
+            handleLoss(_battle, _player);//player tried to select non existent or dead pepe he dies
+          }
+          else{ //everything ok select other pepe
+            battle.players[_player].selectedPepe = pepeSelected;
+          }
+      }
+      else { //normal move
+          uint256 selectedPepe = battle.players[oponent].selectedPepe;
+          uint256 oponentPepeHealth = battle.players[oponent].pepes[selectedPepe].health;
+
+          uint256 damage = 10 + uint256(battle.players[oponent].randomHash) % 10;
+
+          if(damage > oponentPepeHealth) { //if oponent pepe dies with this blow
+              battle.players[oponent].pepes[selectedPepe].health = 0;
+              autoSwitchPepe(_battle, oponent);
+          }
+          else { //else deduct damage from health
+              battle.players[oponent].pepes[selectedPepe].health -= damage; // emit some event or web3 has to "fetch" the new health? //yes we need that
+              // external view function to get current battle state and pepe's health? //yes we need that
+          }
+      }
+
+  }
+
+  function autoSwitchPepe(uint256 _battle, uint256 _player) internal {
+      Battle storage battle = battles[_battle];
+      for(uint256 i = 0; i < battle.players[_player].pepes.length; i ++) {
+          if(battle.players[_player].pepes[i].health > 0) {
+             battle.players[_player].selectedPepe = uint8(i); // do we need some sort of getPepe by id?
+             return; // if no new pepe. continue to handle loss.
+          }
+      }
+      handleLoss(_battle, _player);
+  }
+
+  function move(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public {
+      require(_seq % 2 == getPlayerOneOrTwo(msg.sender));
 
       if(_seq % 4 == 3 || _seq % 4 == 0) {
-        //submit move
+        submitMove(_battle, _hash);
       }
       else{
-        //reveal move
+        revealMove(_battle, _hash, _move);
       }
+
+      battles[_battle].seq += 1;
 
   }
                         /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
