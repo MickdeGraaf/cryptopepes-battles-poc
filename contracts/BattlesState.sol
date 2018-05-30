@@ -16,7 +16,7 @@ contract BattlesState {
       uint8 selectedPepe;
       bytes32 randomHash;
   }
-
+//test ssh dinge
   mapping (uint256 => Battle) public battles;
   uint256 battleCounter;
 
