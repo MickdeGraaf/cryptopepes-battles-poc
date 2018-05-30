@@ -191,7 +191,7 @@ contract BattlesState {
 
       bytes32 message = prefixed(keccak256(address(this), _seq, pepHealths, selectedPepe, randomHash, submittedMoves,  revealedMoves ));
       require(recoverSigner(message, _signature) == battle.players[getOpponent(getPlayerOneOrTwo(_battle, msg.sender))]);
-
+s
       //update STATE
 
       battle.seq = _seq;
