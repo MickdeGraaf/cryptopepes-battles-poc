@@ -166,8 +166,12 @@ contract BattlesState {
       handleLoss(_battle, _player);
   }
 
+  function handleLoss(uint256 _battle, uint256 _player) internal {
+
+  }
+
   function move(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public {
-      require(_seq % 2 == getPlayerOneOrTwo(msg.sender));
+      require(_seq % 2 == getPlayerOneOrTwo(_battle, msg.sender));
 
       if(_seq % 4 == 3 || _seq % 4 == 0) {
         submitMove(_battle, _hash);
@@ -180,12 +184,12 @@ contract BattlesState {
 
   }
                         /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
-  function moveFromState(uint256 _battle, uint8 _seq, uint256[] pephealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
+  function moveFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
       Battle storage battle = battles[_battle];
 
       require(_seq > battle.seq); //seq must be greater than current
 
-      bytes32 message = prefixed(keccak256(address(this), _seq, pephealths, selectedPepe, randomHash, submittedMoves,  revealedMoves ));
+      bytes32 message = prefixed(keccak256(address(this), _seq, pepHealths, selectedPepe, randomHash, submittedMoves,  revealedMoves ));
       require(recoverSigner(message, _signature) == battle.players[getOpponent(getPlayerOneOrTwo(_battle, msg.sender))]);
 
       //update STATE
@@ -216,7 +220,7 @@ contract BattlesState {
       playerOne.move = revealedMoves[0];
       playerTwo.move = revealedMoves[1];
 
-      move(_battle, _seq, _move _hash);
+      move(_battle, _seq, _move, _hash);
 
   }
 
