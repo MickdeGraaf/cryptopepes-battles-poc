@@ -201,24 +201,8 @@ contract BattlesState {
       handleLoss(_battle, _player);
   }
 
-+  function handleLoss(uint256 _battle, uint256 _loser) internal {
-+      Battle storage battle = battles[_battle];
-+      uint256 winner;
-+
-+      if(_loser == 1) {
-+          winner = 0;
-+      }
-+      else {
-+          winner = 1;
-+      }
-+
-+      if(!battle.players[winner].playerAddress.send(battle.stakePerPlayer * 2)) {
-+        //nothing;
-+        // is this for when sending fails?
-+        //yes so players cannot halt battles locking funds via a smart contract
-+      }
-+  }
-+
+
+
 
                         /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
   function moveFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
