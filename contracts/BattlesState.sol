@@ -15,6 +15,7 @@ contract BattlesState {
       uint8 move;
       uint8 selectedPepe;
       bytes32 randomHash;
+      bool hasRevealed;
   }
   mapping (uint256 => Battle) public battles;
   uint256 battleCounter;
@@ -78,9 +79,17 @@ contract BattlesState {
     // constructor
   }
 
-    function move(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public {
+    function continueGame(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public { // renamed from 'move' to 'continueGame' to clarify its about the game state and nothing to do with pepe moves.
       require(_seq % 2 == getPlayerOneOrTwo(_battle, msg.sender)); // requires that the game seq modules 2 (4 % 2 = 0.... 5 % 2 = 1) 
 // to either be 0 or 1, so player 1 turn or player 2 turn,  then check if sender is player 1 or 2.  if sender of message is valid for turn.....
+
+
+// this is unfair however because this always makes player 2 the one to pay for reveal move and doTurn. 
+// i suggest a require boolean to check if a player already did submit move / revealed move. dont go into function. 
+// reset boolean at doTurn.
+// this might also eliminate the need to check at what seq you are as this does not matter. it will not reveal without both players having true on submit. 
+// it will not submit twice of increase seq for a player that tries to submit twice. 
+
       if(_seq % 4 < 2) { // we start at 0. so
         /* 
         0.S % 4 = 0 = sub,
@@ -116,8 +125,15 @@ contract BattlesState {
       battle.players[player].move = _move; // save the checked and submitted move to be excuted.
       battle.players[player].randomHash = _hash; // ?????? why are we setting the random hash again. its not changed as the player submits his old hash + move 
       //???? why are we calling it _hash and not _randomHash as its done when creating the game? 
-      
-      if(battle.seq % 4 == 0) { // check if current move in set is 4th
+      battle.players[player].hasRevealed = true; // sets hasRevealed to true for player that reveals move. 
+    /*   if(battle.seq % 4 == 0) { // check if current move in set is 4th, invalid as seq starts at 0. and also unfair for paying.
+          doTurn(_battle);
+      } */
+
+      if (battle.players[getOpponent(player)].hasRevealed && battle.players[player].hasRevealed)
+      {
+          // if both players revealed. the last player that reveals has to pay for doTurn. 
+          // currently this is always player 2 as its still based on continueGame function. See new idea.
           doTurn(_battle);
       }
   }
@@ -125,9 +141,11 @@ contract BattlesState {
   function doTurn(uint256 _battle) internal {
       Battle storage battle = battles[_battle]; // locate battle
 
-      uint8 playerFirst = uint8(battle.seq % 2);
-      uint8 playerSecond = uint8((battle.seq + 1) % 2); // second is with one C
+      uint8 playerFirst = uint8(battle.seq % 2); // this function has no use as its always the same result because turn based on continueGame function,
+      uint8 playerSecond = uint8((battle.seq + 1) % 2); // player 2 will always have to pay for doTurn and battle.seq % 2 will always be 1(player 2) 
+// seq = 3. % 
 
+// we want this function to be paid by the slowest player. last revealing. see above. We want the move's to excute on pepe speed order. incase of a draw. player last revealed goes second.
       doMove(_battle, playerFirst);
       doMove(_battle, playerSecond);
 
@@ -205,7 +223,7 @@ contract BattlesState {
 
 
                         /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
-  function moveFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
+  function continueGameFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
       Battle storage battle = battles[_battle];
 
       require(_seq > battle.seq); //seq must be greater than current
