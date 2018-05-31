@@ -24,7 +24,6 @@ contract BattlesState {
       Player[] players;
       uint256 stakePerPlayer;
       address lastPlayerMoved;
-      uint256 turnCounter;
       bool active;
   }
 
@@ -126,8 +125,8 @@ contract BattlesState {
   function doTurn(uint256 _battle) internal {
       Battle storage battle = battles[_battle]; // locate battle
 
-      uint8 playerFirst = uint8(battle.turnCounter % 2); // turncounter = 0 then player 1
-      uint8 playerSecond = uint8((battle.turnCounter + 1) % 2); // increase turn counter l
+      uint8 playerFirst = uint8(battle.seq % 2);
+      uint8 playerSecond = uint8((battle.seq + 1) % 2); // second is with one C
 
       doMove(_battle, playerFirst);
       doMove(_battle, playerSecond);
@@ -173,6 +172,24 @@ contract BattlesState {
 
   }
 
+  function handleLoss(uint256 _battle, uint256 _loser) internal {
+      Battle storage battle = battles[_battle];
+      uint256 winner;
+
+      if(_loser == 1) {
+          winner = 0;
+      }
+      else {
+          winner = 1;
+      }
+
+      if(!battle.players[winner].playerAddress.send(battle.stakePerPlayer * 2)) {
+        //nothing;
+        // is this for when sending fails?
+        //yes so players cannot halt battles locking funds via a smart contract
+      }
+  }
+
   function autoSwitchPepe(uint256 _battle, uint256 _player) internal {
       Battle storage battle = battles[_battle];
       for(uint256 i = 0; i < battle.players[_player].pepes.length; i ++) {
@@ -210,8 +227,8 @@ contract BattlesState {
       require(_seq > battle.seq); //seq must be greater than current
 
       bytes32 message = prefixed(keccak256(address(this), _seq, pepHealths, selectedPepe, randomHash, submittedMoves,  revealedMoves ));
-      require(recoverSigner(message, _signature) == battle.players[getOpponent(getPlayerOneOrTwo(_battle, msg.sender))]);
-s
+      require(recoverSigner(message, _signature) == battle.players[getOpponent(getPlayerOneOrTwo(_battle, msg.sender))].playerAddress);
+
       //update STATE
 
       battle.seq = _seq;
