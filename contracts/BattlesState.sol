@@ -16,7 +16,6 @@ contract BattlesState {
       uint8 selectedPepe;
       bytes32 randomHash;
   }
-//test ssh dinge
   mapping (uint256 => Battle) public battles;
   uint256 battleCounter;
 
@@ -30,45 +29,46 @@ contract BattlesState {
   }
 
   function newBattle(uint256[] _pepes, bytes32 _randomHash, address _oponent) payable public {
-      Battle storage battle = battles[battleCounter];
-      battleCounter += 1;
+      Battle storage battle = battles[battleCounter]; // creates new battle with ID of battleCounter
+      battleCounter += 1; // increases for next battle to be higher
 
-      battle.players.length = 2;
+      battle.players.length = 2; // allows 2 players in array
 
-      battle.players[0].playerAddress = msg.sender;
-      battle.players[1].playerAddress = _oponent;
-      battle.players[0].randomHash = _randomHash;
+      battle.players[0].playerAddress = msg.sender; // sets player 0 to be the sender of newBattle command
+      battle.players[1].playerAddress = _oponent; //????? why send opoment. not checking it at joinbattle
+      battle.players[0].randomHash = _randomHash; // sets initial random hash. player creates this.
 
-      for(uint256 i = 0; i < _pepes.length; i ++) {
+      for(uint256 i = 0; i < _pepes.length; i ++) { // adds default pepes based on _pepes parameter (for exmp 10)
           battle.players[0].pepes.push(BattlePep(_pepes[i], 10000));
       }
 
-      battle.stakePerPlayer = msg.value;
+      battle.stakePerPlayer = msg.value; // sets ETH stake to be equal to the amount send with message
 
-      emit NewBattle(battleCounter - 1, msg.sender, _oponent, _pepes, msg.value);
+      emit NewBattle(battleCounter - 1, msg.sender, _oponent, _pepes, msg.value); // emits read-able event in chain listing the above
   }
 
   function joinBattle(uint256 _battle, uint256[] _pepes, bytes32 _randomHash) payable public {
-      Battle storage battle = battles[_battle];
-      require(battle.players[1].playerAddress == msg.sender || battle.players[1].playerAddress == address(0));
-      require(battle.active == false);
+      Battle storage battle = battles[_battle]; // uses the _battle parameter number to find the correct battle in the contract to join.
+      require(battle.players[1].playerAddress == msg.sender || battle.players[1].playerAddress == address(0)); // requires player 2 to be the sender of this function or default?
+      require(battle.active == false); // requires this battle's status to be non active. 
 
-      if(battle.players[1].playerAddress != msg.sender) {
+      if(battle.players[1].playerAddress != msg.sender) { // if not yet set. set player 2 to be equal to msg sender
         battle.players[1].playerAddress = msg.sender;
       }
 
-      require(msg.value == battle.stakePerPlayer);
-      require(battle.players[0].pepes.length == _pepes.length);
+      require(msg.value == battle.stakePerPlayer); // required the value of the message to be the same as the initial sender
+      require(battle.players[0].pepes.length == _pepes.length); // same amount of pepes in battle
 
-      battle.players[1].randomHash = _randomHash;
+      battle.players[1].randomHash = _randomHash; // saves players 2 initial random hash.
 
-      for(uint256 i = 0; i < _pepes.length; i ++) {
+      for(uint256 i = 0; i < _pepes.length; i ++) { // adds p2 pepes to battle
           battle.players[1].pepes.push(BattlePep(_pepes[i], 10000));
       }
 
-      battle.active = true;
+      battle.active = true; // sets battle active so its not to be joined again
+     
 
-      emit BattleStarted(_battle, battle.players[0].playerAddress, msg.sender, msg.value);
+      emit BattleStarted(_battle, battle.players[0].playerAddress, msg.sender, msg.value); // emit above on chain
   }
 
   event NewBattle(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256[] pepes, uint256 stake);
@@ -79,37 +79,55 @@ contract BattlesState {
     // constructor
   }
 
-  function submitMove(uint256 _battle, bytes32 _hash) internal {
-      Battle storage battle = battles[_battle];
-      uint8 player = getPlayerOneOrTwo(_battle, msg.sender);
-      battle.players[player].moveHash = _hash; // movehash is a int? or a hash? @revealMove we got another _move?
+    function move(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public {
+      require(_seq % 2 == getPlayerOneOrTwo(_battle, msg.sender)); // requires that the game seq modules 2 (4 % 2 = 0.... 5 % 2 = 1) 
+// to either be 0 or 1, so player 1 turn or player 2 turn,  then check if sender is player 1 or 2.  if sender of message is valid for turn.....
+      if(_seq % 4 < 2) { // we start at 0. so
+        /* 
+        0.S % 4 = 0 = sub,
+        1.S % 4 = 1 = sub
+        2.R % 4 = 2 = reveal
+        3.R % 4 = 3 = reveal
+        4.S % 4 = 0 = sub
+        5.S % 4 = 1 = sub */
+        submitMove(_battle, _hash); 
+      }
+      else{
+        revealMove(_battle, _hash, _move); 
+      }
+
+      battles[_battle].seq += 1; // increase seq / turns. proceed to next move.
+
+  }
+
+  function submitMove(uint256 _battle, bytes32 _moveHash) internal {
+      Battle storage battle = battles[_battle]; // use battle id to specify game
+      uint8 player = getPlayerOneOrTwo(_battle, msg.sender); //finds out of sender of this message is either p1 or p2
+      battle.players[player].moveHash = _moveHash; // puts the hash on chain that has encrypted data of chosen move. player makes this on client side. randomhash + chosen move
   }
 
 
   function revealMove(uint256 _battle, bytes32 _hash, uint8 _move) internal {
-      Battle storage battle = battles[_battle];
-      uint8 player = getPlayerOneOrTwo(_battle, msg.sender);
+      Battle storage battle = battles[_battle]; // specify game
+      uint8 player = getPlayerOneOrTwo(_battle, msg.sender); // find if sender is p1 or p2
 
-      require(battle.players[player].randomHash == keccak256(_hash)); //check if new hash is correct  // what is _nextHash? where do we get this. why would it be equal to randomHash?
-      //_nextHash is submitted as a parameter and is the next hash in the hashchain
-      require(battle.players[player].moveHash == keccak256(_move, _hash)); // moveHash from submit move should be equal to the _move with _nextHash? so we submit move twice?
-      //the move is submitted by submitting the hash. It is submitted once and revealed once
-      battle.players[player].move = _move;
-      battle.players[player].randomHash = _hash; //does this needs to be returned to the player?
-      //the player already knows this as he submitted it
-      //yes lets do that! It creates an incentive to submit moves fast as it saves tx fee to be the first
-
-      if(battle.seq % 4 == 0) { //if other player submitted do turn
+      require(battle.players[player].randomHash == keccak256(_hash)); // require the players random hash *(initial random set hash on join) to be equal to the _hash parameter send now.
+      require(battle.players[player].moveHash == keccak256(_move, _hash)); // requires player moveHash *(set in submit move above) to be equal to a chosen move + the random/initial hash.
+      // this means that the chosen move uppon "reveal" has to be the same as the move on "submit" and therefore unchanged. or the hash outcome would not equal
+      battle.players[player].move = _move; // save the checked and submitted move to be excuted.
+      battle.players[player].randomHash = _hash; // ?????? why are we setting the random hash again. its not changed as the player submits his old hash + move 
+      //???? why are we calling it _hash and not _randomHash as its done when creating the game? 
+      
+      if(battle.seq % 4 == 0) { // check if current move in set is 4th
           doTurn(_battle);
       }
   }
 
-  function doTurn(uint256 _battle) internal { //who calls doTurn and revealMove?
-      //reveal move needs to be called by each player, doTurn now gets called by the last player revealing
-      Battle storage battle = battles[_battle];
+  function doTurn(uint256 _battle) internal {
+      Battle storage battle = battles[_battle]; // locate battle
 
-      uint8 playerFirst = uint8(battle.turnCounter % 2);
-      uint8 playerSecond = uint8((battle.turnCounter + 1) % 2); // second is with one C
+      uint8 playerFirst = uint8(battle.turnCounter % 2); // turncounter = 0 then player 1
+      uint8 playerSecond = uint8((battle.turnCounter + 1) % 2); // increase turn counter l
 
       doMove(_battle, playerFirst);
       doMove(_battle, playerSecond);
@@ -166,23 +184,25 @@ contract BattlesState {
       handleLoss(_battle, _player);
   }
 
-  function handleLoss(uint256 _battle, uint256 _player) internal {
++  function handleLoss(uint256 _battle, uint256 _loser) internal {
++      Battle storage battle = battles[_battle];
++      uint256 winner;
++
++      if(_loser == 1) {
++          winner = 0;
++      }
++      else {
++          winner = 1;
++      }
++
++      if(!battle.players[winner].playerAddress.send(battle.stakePerPlayer * 2)) {
++        //nothing;
++        // is this for when sending fails?
++        //yes so players cannot halt battles locking funds via a smart contract
++      }
++  }
++
 
-  }
-
-  function move(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public {
-      require(_seq % 2 == getPlayerOneOrTwo(_battle, msg.sender));
-
-      if(_seq % 4 == 3 || _seq % 4 == 0) {
-        submitMove(_battle, _hash);
-      }
-      else{
-        revealMove(_battle, _hash, _move);
-      }
-
-      battles[_battle].seq += 1;
-
-  }
                         /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
   function moveFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
       Battle storage battle = battles[_battle];
