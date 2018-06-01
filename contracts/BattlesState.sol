@@ -259,7 +259,7 @@ contract BattlesState {
       playerOne.move = revealedMoves[0];
       playerTwo.move = revealedMoves[1];
 
-      move(_battle, _seq, _move, _hash);
+      continueGame(_battle, _seq, _move, _hash);(_battle, _seq, _move, _hash);
 
   }
 
