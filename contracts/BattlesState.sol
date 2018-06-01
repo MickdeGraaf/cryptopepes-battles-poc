@@ -98,10 +98,15 @@ contract BattlesState {
         3.R % 4 = 3 = reveal
         4.S % 4 = 0 = sub
         5.S % 4 = 1 = sub */
-        submitMove(_battle, _hash); 
+        submitMove(_battle, _hash); // !!!!!!!! the _move parameter is always needed to call this function.
+        //!!!!!! however in the submit move seq there is no _move to submit just the encoded hash!
+
+        //!! its confusing that the submitMove _hash is a randomhash + move re-encrypted into a "movehash" combo while ...
       }
       else{
+          // !! ... here the _hash is the original randomhash + the original _move. to be compared later to be equal to "movehash" while re-encrypted. 
         revealMove(_battle, _hash, _move); 
+        // !! TL;DR. the parameter _hash might contrain 2 entirely diffrent things. 
       }
 
       battles[_battle].seq += 1; // increase seq / turns. proceed to next move.
@@ -225,7 +230,9 @@ contract BattlesState {
 
                         /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
   function continueGameFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
-      Battle storage battle = battles[_battle]; // battle selector. stack too deep. fix parameters?
+      Battle storage battle = battles[_battle];
+      
+       // battle selector. stack too deep. fix parameters?
 
       require(_seq > battle.seq); //seq must be greater than current, no submitting old moves. 
 
@@ -264,15 +271,15 @@ contract BattlesState {
       playerTwo.moveHash = submittedMoves[1];
 
       playerOne.move = revealedMoves[0];
-      playerTwo.move = revealedMoves[1];
+      playerTwo.move = revealedMoves[1]; // all these lines simply put the newly gotten values into the contract / update them from the parameters.
 
-      continueGame(_battle, _seq, _move /* _hash */);(_battle, _seq, _move /* _hash */); // what does the middle ; do ? 
-    // why do we need _hash isnt that the same as msg.sender's player.randomHash? 
+      continueGame(_battle, _seq, _move,  _hash );(_battle, _seq, _move,  _hash ); // what does the middle ; do ? 
+     // again _hash might be either the randomhash or the movehhash... what do we do when its a movehash for submitting and there is no _move required or wanted yet?
   }
 
 
   function getOpponent(uint8 _player) returns(uint8 oponent) {
-      if(_player == 0){
+      if(_player == 0){ // gets the opponent from the player number send in.
         oponent = 1;
       }
       else {
@@ -283,13 +290,13 @@ contract BattlesState {
   function getPlayerOneOrTwo(uint256 _battle, address _player) view public returns(uint8) {
       Battle storage battle = battles[_battle];
 
-      if(battle.players[0].playerAddress == _player) {
+      if(battle.players[0].playerAddress == _player) { // checks if player 1 or 2's adress is equal to the msg.sender thats in the parameter. if so return if 1 or 2
         return 0;
       }
-      else if(battle.players[1].playerAddress == _player) { // check array at 1. not 0.
+      else if(battle.players[1].playerAddress == _player) { 
         return 1;
       }
-      else {
+      else { // if the msg.sender is not equal to either p1 or p2 revert.
         revert();
       }
   }
@@ -297,7 +304,7 @@ contract BattlesState {
 
   // Signature methods
 
-   function splitSignature(bytes sig)
+   function splitSignature(bytes sig) // splits sig into vars
        internal
        pure
        returns (uint8, bytes32, bytes32)
@@ -320,7 +327,7 @@ contract BattlesState {
        return (v, r, s);
    }
 
-   function recoverSigner(bytes32 message, bytes sig)
+   function recoverSigner(bytes32 message, bytes sig) // calls split sig and then calls ecrecover to check and return if matched / legit signature/move 
        internal
        pure
        returns (address)
