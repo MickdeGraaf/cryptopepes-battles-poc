@@ -153,37 +153,40 @@ contract BattlesState {
   }
 
   function doMove(uint256 _battle, uint8 _player) internal {
-      Battle storage battle = battles[_battle];
-      uint8 move = battle.players[_player].move;
-      uint8 oponent;
+      Battle storage battle = battles[_battle]; // locate battle
+      uint8 move = battle.players[_player].move; // get move from player
+      uint8 oponent; // init oponent int.
       if(_player == 0){
-        oponent = 1;
+        oponent = 1; // set oponent to be oppersite of player
       }
       else {
         oponent = 0;
       }
 
-      if(move > 9){ //if the player is switching pepe
+      if(move > 9){ //if the player is switching pepe he has to use a move above 10, 10 being the lowest and selecting pepe 0. 
+      // maybe find a better way to deal with this so that the game moves can eventually get extended. 
           uint8 pepeSelected = move - 10;
           if(pepeSelected > battle.players[_player].pepes.length || battle.players[_player].pepes[pepeSelected].health == 0) {
-            handleLoss(_battle, _player);//player tried to select non existent or dead pepe he dies
+            handleLoss(_battle, _player);//player tried to select non existent or dead pepe he dies. got to have this secured in GUI
           }
           else{ //everything ok select other pepe
             battle.players[_player].selectedPepe = pepeSelected;
           }
       }
       else { //normal move
-          uint256 selectedPepe = battle.players[oponent].selectedPepe;
-          uint256 oponentPepeHealth = battle.players[oponent].pepes[selectedPepe].health;
+          uint256 oponentPepe = battle.players[oponent].selectedPepe; // set oponentPepe from his selected pepe. ? renamed for easyer understanding ?
+          uint256 oponentPepeHealth = battle.players[oponent].pepes[oponentPepe].health; // load health in var
 
-          uint256 damage = 10 + uint256(battle.players[oponent].randomHash) % 10;
+          uint256 damage = 10 + uint256(battle.players[oponent].randomHash) % 10; // calculate damage to be between 10 and 19 based on hash. this gets more advanced later.
 
           if(damage > oponentPepeHealth) { //if oponent pepe dies with this blow
-              battle.players[oponent].pepes[selectedPepe].health = 0;
-              autoSwitchPepe(_battle, oponent);
+              battle.players[oponent].pepes[oponentPepe].health = 0; // sets health to 0 instead of negative. 
+              autoSwitchPepe(_battle, oponent); // tries to switch pepe to new one. 
           }
           else { //else deduct damage from health
-              battle.players[oponent].pepes[selectedPepe].health -= damage; // emit some event or web3 has to "fetch" the new health? //yes we need that
+              battle.players[oponent].pepes[oponentPepe].health -= damage; // substract damage from health
+              
+              // emit some event or web3 has to "fetch" the new health? //yes we need that
               // external view function to get current battle state and pepe's health? //yes we need that
           }
       }
@@ -191,32 +194,30 @@ contract BattlesState {
   }
 
   function handleLoss(uint256 _battle, uint256 _loser) internal {
-      Battle storage battle = battles[_battle];
-      uint256 winner;
+      Battle storage battle = battles[_battle];//battle loc
+      uint256 winner; // init winner int
 
-      if(_loser == 1) {
-          winner = 0;
+      if(_loser == 1) { // gets losing player from parameter. checks if either player 1(0) or 2(1) and set winner
+          winner = 0; 
       }
       else {
           winner = 1;
       }
 
-      if(!battle.players[winner].playerAddress.send(battle.stakePerPlayer * 2)) {
-        //nothing;
-        // is this for when sending fails?
-        //yes so players cannot halt battles locking funds via a smart contract
+      if(!battle.players[winner].playerAddress.send(battle.stakePerPlayer * 2)) { // send stakes of both players in value to the winners playerAddress, 
+        // failed / untrue, do nothing?
       }
   }
 
   function autoSwitchPepe(uint256 _battle, uint256 _player) internal {
-      Battle storage battle = battles[_battle];
-      for(uint256 i = 0; i < battle.players[_player].pepes.length; i ++) {
-          if(battle.players[_player].pepes[i].health > 0) {
-             battle.players[_player].selectedPepe = uint8(i); // do we need some sort of getPepe by id?
-             return; // if no new pepe. continue to handle loss.
-          }
+      Battle storage battle = battles[_battle]; // battle loc
+      for(uint256 i = 0; i < battle.players[_player].pepes.length; i ++) { //for all the pepes from this player
+          if(battle.players[_player].pepes[i].health > 0) { // check if current pepe is alive
+             battle.players[_player].selectedPepe = uint8(i); // if alive, selected pepe int = current pepe.
+             return; // returns / exits function if new pepe is selected.
+          } // if not a new pepe is selected and no return is made
       }
-      handleLoss(_battle, _player);
+      handleLoss(_battle, _player); // then handle loss for current player
   }
 
 
@@ -224,13 +225,19 @@ contract BattlesState {
 
                         /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
   function continueGameFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
-      Battle storage battle = battles[_battle];
+      Battle storage battle = battles[_battle]; // battle selector. stack too deep. fix parameters?
 
-      require(_seq > battle.seq); //seq must be greater than current
+      require(_seq > battle.seq); //seq must be greater than current, no submitting old moves. 
 
-      bytes32 message = prefixed(keccak256(address(this), _seq, pepHealths, selectedPepe, randomHash, submittedMoves,  revealedMoves ));
+      bytes32 message = prefixed(keccak256(address(this), _seq, pepHealths, selectedPepe, randomHash, submittedMoves, revealedMoves )); 
+      // message exists of this contracts address. the new seq. pephealths, selectedpepe, randomhash, submittedmoves, revealedmoves. 
+      //These are send from the player thats trying to continue the state. these will be hashed.
       require(recoverSigner(message, _signature) == battle.players[getOpponent(getPlayerOneOrTwo(_battle, msg.sender))].playerAddress);
+      // Require the recoverSigner function. taking the above message and a hashed signature the player got from his oppoment. if these match it means
+      // both parties agreed uppon all health. selected pepes. submitted moves. random hashes and seq and revealedMoves. 
 
+      // ???what if i dont like the new state. why would I sign it and send my message to my oppoment? 
+      // ???
       //update STATE
 
       battle.seq = _seq;
@@ -259,8 +266,8 @@ contract BattlesState {
       playerOne.move = revealedMoves[0];
       playerTwo.move = revealedMoves[1];
 
-      continueGame(_battle, _seq, _move, _hash);(_battle, _seq, _move, _hash);
-
+      continueGame(_battle, _seq, _move /* _hash */);(_battle, _seq, _move /* _hash */); // what does the middle ; do ? 
+    // why do we need _hash isnt that the same as msg.sender's player.randomHash? 
   }
 
 
