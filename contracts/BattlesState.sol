@@ -225,6 +225,29 @@ contract BattlesState {
       handleLoss(_battle, _player); // then handle loss for current player
   }
 
+  function getOpponent(uint8 _player) returns(uint8 oponent) {
+      if(_player == 0){ // gets the opponent from the player number send in.
+        oponent = 1;
+      }
+      else {
+        oponent = 0;
+      }
+  }
+
+  function getPlayerOneOrTwo(uint256 _battle, address _player) view public returns(uint8) {
+      Battle storage battle = battles[_battle];
+
+      if(battle.players[0].playerAddress == _player) { // checks if player 1 or 2's adress is equal to the msg.sender thats in the parameter. if so return if 1 or 2
+        return 0;
+      }
+      else if(battle.players[1].playerAddress == _player) { 
+        return 1;
+      }
+      else { // if the msg.sender is not equal to either p1 or p2 revert.
+        revert();
+      }
+  }
+
 
 
 
@@ -251,7 +274,7 @@ contract BattlesState {
 
       for(uint256 i = 0; i < pepHealths.length / 2; i ++) {
           battle.players[0].pepes[i].health = pepHealths[i];
-      }
+      }(
 
       for(uint256 ii = pepHealths.length / 2; ii < pepHealths.length; ii ++) {
           battle.players[0].pepes[ii - pepHealths.length / 2].health = pepHealths[ii];
@@ -277,30 +300,29 @@ contract BattlesState {
      // again _hash might be either the randomhash or the movehhash... what do we do when its a movehash for submitting and there is no _move required or wanted yet?
   }
 
+  function continueGameFromState2(bytes fullState, bytes _playerStateHashed, bytes _opponentStateHashed, bytes32 _randOrMoveHash, uint8 _move){ // not sure if correct useage of underscore
 
-  function getOpponent(uint8 _player) returns(uint8 oponent) {
-      if(_player == 0){ // gets the opponent from the player number send in.
-        oponent = 1;
+    require(recoverSigner(_playerStateHashed, _opponentStateHashed) == battle.players[getOpponent(getPlayerOneOrTwo(_battle, msg.sender))].playerAddress);
+    //client side hash the full state. (contract adds, healths....ect) and called it '_playerStateHashed' AKA message, 
+    //use the opponent's version '_opponentStateHashed' AKA signature. should return the adress of opponent and if so. both parties agreed on state.
+
+
+  }  
+
+  function getBattleFromStateBytes(bytes fullState) internal pure returns (uint256) 
+  {
+      //make a require fullState to be of some length. 
+      uint256 _battle // ? should battle not be a int16, this might overkill.
+
+      assembly {
+          //bytes start after 32 because length prefix
+          _battle := byte(3, mload(add(sig, 32)))
+          //first 3 bytes of the state, should allow for 999 game rooms for now. 
       }
-      else {
-        oponent = 0;
-      }
+      
   }
 
-  function getPlayerOneOrTwo(uint256 _battle, address _player) view public returns(uint8) {
-      Battle storage battle = battles[_battle];
-
-      if(battle.players[0].playerAddress == _player) { // checks if player 1 or 2's adress is equal to the msg.sender thats in the parameter. if so return if 1 or 2
-        return 0;
-      }
-      else if(battle.players[1].playerAddress == _player) { 
-        return 1;
-      }
-      else { // if the msg.sender is not equal to either p1 or p2 revert.
-        revert();
-      }
-  }
-
+  // Method to convert state hex(a str) to 
 
   // Signature methods
 
