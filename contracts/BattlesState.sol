@@ -277,7 +277,7 @@ contract BattlesState {
       }(
 
       for(uint256 ii = pepHealths.length / 2; ii < pepHealths.length; ii ++) {
-          battle.players[0].pepes[ii - pepHealths.length / 2].health = pepHealths[ii];
+          battle.players[1].pepes[ii - pepHealths.length / 2].health = pepHealths[ii];
       }
 
       Player playerOne = battle.players[0];
