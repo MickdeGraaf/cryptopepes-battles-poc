@@ -1,0 +1,21 @@
+
+
+New battle vm acc 1:
+[0, 1]
+ ["0x00","0xaa", "0xff"]
+0x14723a09acff6d2a60dcdf7aa4aff308fddc160c
+
+
+join battle vm acc 2 :
+[1, 2]
+ ["0x00","0xdd", "0xdd"]
+
+
+--getstats--
+
+
+Contfromstate:
+"Battle;000.Seq;240.Peps;1212343456567878.Spep;0001.rhash;0x123450x12345.Smoves;0x1230x321.Rmoves;0503"
+"0x0000000000000000000000000000000000000000000000000000000000000000"
+8
+
