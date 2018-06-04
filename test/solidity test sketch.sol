@@ -17,19 +17,31 @@ contract BattlesState {
       bytes32 randomHash;
       bool hasRevealed;
   }
-  mapping (uint256 => Battle) public battles;
-  uint256 battleCounter;
 
   struct Battle {
       uint256 seq;
       Player[] players;
       uint256 stakePerPlayer;
-      address lastPlayerMoved;
+      address lastPlayerMoved;//notused
       bool active;
   }
 
-
- 
+  mapping (uint256 => Battle) public battles;
+  uint256 battleCounter;
+  
+  
+  function getBattleStats1(uint256 _battleid) view public returns (uint, bool, uint256,uint256,uint256,uint256) {
+        return (battles[_battleid].seq,  battles[_battleid].active, battles[_battleid].players[0].pepes[0].health, battles[_battleid].players[0].pepes[1].health,    battles[_battleid].players[1].pepes[0].health,  battles[_battleid].players[1].pepes[1].health        );
+    }
+    
+      function getBattleStats2(uint256 _battleid) view public returns ( uint8,uint8,bytes32,bytes32) {
+        return (battles[_battleid].players[0].selectedPepe, battles[_battleid].players[1].selectedPepe,      battles[_battleid].players[0].randomHash,      battles[_battleid].players[1].randomHash    );
+    }
+       function getBattleStats3(uint256 _battleid) view public returns ( bytes32,bytes32,uint8,uint8) {
+        return (battles[_battleid].players[0].moveHash,        battles[_battleid].players[1].moveHash,        battles[_battleid].players[0].move,        battles[_battleid].players[1].move    );
+    }
+  
+  
   function newBattle(uint256[] _pepes, bytes32 _randomHash, address _oponent) payable public {
       Battle storage battle = battles[battleCounter]; // creates new battle with ID of battleCounter
       battleCounter += 1; // increases for next battle to be higher
@@ -41,7 +53,7 @@ contract BattlesState {
       battle.players[0].randomHash = _randomHash; // sets initial random hash. player creates this.
 
       for(uint256 i = 0; i < _pepes.length; i ++) { // adds default pepes based on _pepes parameter (for exmp 10)
-          battle.players[0].pepes.push(BattlePep(_pepes[i], 10000));
+          battle.players[0].pepes.push(BattlePep(_pepes[i], 999));
       }
 
       battle.stakePerPlayer = msg.value; // sets ETH stake to be equal to the amount send with message
@@ -64,7 +76,7 @@ contract BattlesState {
       battle.players[1].randomHash = _randomHash; // saves players 2 initial random hash.
 
       for(uint256 i = 0; i < _pepes.length; i ++) { // adds p2 pepes to battle
-          battle.players[1].pepes.push(BattlePep(_pepes[i], 10000));
+          battle.players[1].pepes.push(BattlePep(_pepes[i], 999));
       }
 
       battle.active = true; // sets battle active so its not to be joined again
@@ -75,9 +87,9 @@ contract BattlesState {
 
   event NewBattle(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256[] pepes, uint256 stake);
   event BattleStarted(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256 stake);
+  
 
-
-  constructor() {
+  constructor() payable {
     // constructor
   }
 
@@ -316,7 +328,7 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
     uint battleid = parseInt(substring(fullState,7,10),3);// see data exmp above. read from 7 to 10 to get battleid
     Battle storage battle = battles[battleid]; 
        
-    require(recoverSigner(_playerStateHashed, _opponentStateHashed) == battle.players[getOpponent(getPlayerOneOrTwo(battleid, msg.sender))].playerAddress);
+   // require(recoverSigner(_playerStateHashed, _opponentStateHashed) == battle.players[getOpponent(getPlayerOneOrTwo(battleid, msg.sender))].playerAddress);
     //client side hash the full state. (contract adds, healths....ect) and called it '_playerStateHashed' AKA message, 
     //use the opponent's version '_opponentStateHashed' AKA signature. should return the adress of opponent and if so. both parties agreed on state.
 
@@ -342,7 +354,7 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
     playerOne.move = uint8(parseInt(substring(fullState,104,106),2));
     playerTwo.move = uint8(parseInt(substring(fullState,107,109),2)); 
 
-    continueGame(battleid, battle.seq, _move, _randOrMoveHash );(battleid, battle.seq, _move, _randOrMoveHash ); // using newly saved battle and seq and using send hash/move to continue.
+   // continueGame(battleid, battle.seq, _move, _randOrMoveHash );(battleid, battle.seq, _move, _randOrMoveHash ); // using newly saved battle and seq and using send hash/move to continue.
   }  
 
 
