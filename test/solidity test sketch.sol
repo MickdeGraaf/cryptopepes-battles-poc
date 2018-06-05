@@ -337,22 +337,22 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
     Player storage playerOne = battle.players[0];
     Player storage playerTwo = battle.players[1];
 
-    playerOne.pepes[0].health = parseInt(substring(fullState,25,29),4);
-    playerOne.pepes[1].health = parseInt(substring(fullState,30,34),4);
-    playerTwo.pepes[0].health = parseInt(substring(fullState,35,39),4);
-    playerTwo.pepes[1].health = parseInt(substring(fullState,40,44),4);
+    playerOne.pepes[0].health = parseInt(substring(fullState,24,28),4);
+    playerOne.pepes[1].health = parseInt(substring(fullState,28,32),4);
+    playerTwo.pepes[0].health = parseInt(substring(fullState,32,36),4);
+    playerTwo.pepes[1].health = parseInt(substring(fullState,36,40),4);
 
-    playerOne.selectedPepe = uint8(parseInt(substring(fullState,50,52),2));
-    playerTwo.selectedPepe = uint8(parseInt(substring(fullState,53,55),2));
+    playerOne.selectedPepe = uint8(parseInt(substring(fullState,46,48),2));
+    playerTwo.selectedPepe = uint8(parseInt(substring(fullState,48,50),2));
 
-    playerOne.randomHash = bytes32(parseInt(substring(fullState,62,69),7));// should prob be 32.. just for testing
-    playerTwo.randomHash = bytes32(parseInt(substring(fullState,70,77),7));
+    playerOne.randomHash = bytes32(parseInt(substring(fullState,57,64),7));// should prob be 32.. just for testing
+    playerTwo.randomHash = bytes32(parseInt(substring(fullState,64,71),7));
 
-    playerOne.moveHash = bytes32(parseInt(substring(fullState,85,90),5)); // should be 32
-    playerTwo.moveHash = bytes32(parseInt(substring(fullState,91,96),5));
+    playerOne.moveHash = bytes32(parseInt(substring(fullState,79,84),5)); // should be 32
+    playerTwo.moveHash = bytes32(parseInt(substring(fullState,84,89),5));
 
-    playerOne.move = uint8(parseInt(substring(fullState,104,106),2));
-    playerTwo.move = uint8(parseInt(substring(fullState,107,109),2)); 
+    playerOne.move = uint8(parseInt(substring(fullState,97,99),2));
+    playerTwo.move = uint8(parseInt(substring(fullState,99,101),2)); 
 
    // continueGame(battleid, battle.seq, _move, _randOrMoveHash );(battleid, battle.seq, _move, _randOrMoveHash ); // using newly saved battle and seq and using send hash/move to continue.
   }  
