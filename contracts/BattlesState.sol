@@ -89,7 +89,7 @@ contract BattlesState {
   event BattleStarted(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256 stake);
   
 
-  constructor() payable {
+  constructor() public payable {
     // constructor
   }
 
@@ -239,7 +239,7 @@ contract BattlesState {
       handleLoss(_battle, _player); // then handle loss for current player
   }
 
-  function getOpponent(uint8 _player) returns(uint8 oponent) {
+  function getOpponent(uint8 _player) internal pure returns(uint8 oponent)  {
       if(_player == 0){ // gets the opponent from the player number send in.
         oponent = 1;
       }
