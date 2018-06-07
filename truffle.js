@@ -9,7 +9,7 @@ module.exports = {
       network_id: "*"
     },
     rinkeby: {
-      provider: function(){
+      provider: function() {
         return new HDWalletProvider(mnemonic, "https://rinkeby.infura.io/vedYi6i5AgNcF1GwzZap")
       },
       network_id: "*"
