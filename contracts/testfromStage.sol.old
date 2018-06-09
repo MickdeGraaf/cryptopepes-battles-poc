@@ -53,6 +53,59 @@ contract BattlesState {
     }
 
   
+  
+
+
+                        /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
+ /*  function continueGameFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
+      Battle storage battle = battles[_battle];
+      
+       // battle selector. stack too deep. fix parameters?
+
+      require(_seq > battle.seq); //seq must be greater than current, no submitting old moves. 
+
+      bytes32 message = prefixed(keccak256(address(this), _seq, pepHealths, selectedPepe, randomHash, submittedMoves, revealedMoves )); 
+      // message exists of this contracts address. the new seq. pephealths, selectedpepe, randomhash, submittedmoves, revealedmoves. 
+      //These are send from the player thats trying to continue the state. these will be hashed.
+      require(recoverSigner(message, _signature) == battle.players[getOpponent(getPlayerOneOrTwo(_battle, msg.sender))].playerAddress);
+      // Require the recoverSigner function. taking the above message and a hashed signature the player got from his oppoment. if these match it means
+      // both parties agreed uppon all health. selected pepes. submitted moves. random hashes and seq and revealedMoves. 
+
+      // ???what if i dont like the new state. why would I sign it and send my message to my oppoment? 
+      // ???
+      //update STATE
+
+      battle.seq = _seq;
+
+      for(uint256 i = 0; i < pepHealths.length / 2; i ++) {
+          battle.players[0].pepes[i].health = pepHealths[i];
+      }(
+
+      for(uint256 ii = pepHealths.length / 2; ii < pepHealths.length; ii ++) {
+          battle.players[1].pepes[ii - pepHealths.length / 2].health = pepHealths[ii];
+      }
+
+      Player playerOne = battle.players[0];
+      Player playerTwo = battle.players[1];
+
+
+      playerOne.selectedPepe = selectedPepe[0];
+      playerTwo.selectedPepe = selectedPepe[1];
+
+      playerOne.randomHash = randomHash[0];
+      playerTwo.randomHash = randomHash[1];
+
+      playerOne.moveHash = submittedMoves[0];
+      playerTwo.moveHash = submittedMoves[1];
+
+      playerOne.move = revealedMoves[0];
+      playerTwo.move = revealedMoves[1]; // all these lines simply put the newly gotten values into the contract / update them from the parameters.
+
+      continueGame(_battle, _seq, _move,  _hash );(_battle, _seq, _move,  _hash ); // what does the middle ; do ? 
+     // again _hash might be either the randomhash or the movehhash... what do we do when its a movehash for submitting and there is no _move required or wanted yet?
+  } */
+
+
 ///////////////stringmethod//////////////////////////////////////////////////////////////
     function continueGameFromStateString(string fullState) public {
         uint battleValueFromState = parseInt(substring(fullState,0,3),3);

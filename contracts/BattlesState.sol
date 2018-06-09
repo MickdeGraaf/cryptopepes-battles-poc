@@ -24,6 +24,7 @@ contract BattlesState {
       uint256 stakePerPlayer;
       address lastPlayerMoved;//notused
       bool active;
+      address winner;
   }
 
   mapping (uint256 => Battle) public battles;
@@ -53,7 +54,7 @@ contract BattlesState {
       battle.players[0].randomHash = _randomHash; // sets initial random hash. player creates this.
 
       for(uint256 i = 0; i < _pepes.length; i ++) { // adds default pepes based on _pepes parameter (for exmp 10)
-          battle.players[0].pepes.push(BattlePep(_pepes[i], 999));
+          battle.players[0].pepes.push(BattlePep(_pepes[i], 30));
       }
 
       battle.stakePerPlayer = msg.value; // sets ETH stake to be equal to the amount send with message
@@ -76,7 +77,7 @@ contract BattlesState {
       battle.players[1].randomHash = _randomHash; // saves players 2 initial random hash.
 
       for(uint256 i = 0; i < _pepes.length; i ++) { // adds p2 pepes to battle
-          battle.players[1].pepes.push(BattlePep(_pepes[i], 999));
+          battle.players[1].pepes.push(BattlePep(_pepes[i], 30));
       }
 
       battle.active = true; // sets battle active so its not to be joined again
@@ -102,6 +103,7 @@ contract BattlesState {
 
     function continueGame(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public { // renamed from 'move' to 'continueGame' to clarify its about the game state and nothing to do with pepe moves.
       Battle storage battle = battles[_battle];
+      require(battle.active);
       require(_seq >= battle.seq);
       require(_seq % 2 == getPlayerOneOrTwo(_battle, msg.sender)); // requires that the game seq modules 2 (4 % 2 = 0.... 5 % 2 = 1) 
 // to either be 0 or 1, so player 1 turn or player 2 turn,  then check if sender is player 1 or 2.  if sender of message is valid for turn.....
@@ -179,8 +181,8 @@ contract BattlesState {
 // we want this function to be paid by the slowest player. last revealing. see above. We want the move's to excute on pepe speed order. incase of a draw. player last revealed goes second.
 // pepe switch should always go before any normal moves.
 // ?? how are we going to calculate stats of pepe. 
-      doMove(_battle, playerFirst);
-      doMove(_battle, playerSecond);
+      doMove(_battle, playerFirst);//sends 0
+      doMove(_battle, playerSecond);// sends 1. 
   }
 
   function doMove(uint256 _battle, uint8 _player) internal {
@@ -205,6 +207,9 @@ contract BattlesState {
             battle.players[_player].selectedPepe = pepeSelected;
           }
       }
+      else if(move == 0){
+          // do nothing. for when you lose your turn on pepe die.
+      }
       else { //normal move
           uint256 oponentPepe = battle.players[oponent].selectedPepe; // set oponentPepe from his selected pepe. ? renamed for easyer understanding ?
           uint256 oponentPepeHealth = battle.players[oponent].pepes[oponentPepe].health; // load health in var
@@ -214,6 +219,7 @@ contract BattlesState {
           if(damage > oponentPepeHealth) { //if oponent pepe dies with this blow
               battle.players[oponent].pepes[oponentPepe].health = 0; // sets health to 0 instead of negative. 
               autoSwitchPepe(_battle, oponent); // tries to switch pepe to new one. 
+              battle.players[oponent].move = 0;// if your oponent's pepe dies. they lose their turn to do a move. 
           }
           else { //else deduct damage from health
               battle.players[oponent].pepes[oponentPepe].health -= damage; // substract damage from health
@@ -228,23 +234,28 @@ contract BattlesState {
   function handleLoss(uint256 _battle, uint256 _loser) internal {
       Battle storage battle = battles[_battle];//battle loc
       uint256 winner; // init winner int
-
+      battle.active = false;
       if(_loser == 1) { // gets losing player from parameter. checks if either player 1(0) or 2(1) and set winner
           winner = 0; 
       }
       else {
           winner = 1;
       }
-
-      if(!battle.players[winner].playerAddress.send(battle.stakePerPlayer * 2)) { // send stakes of both players in value to the winners playerAddress, 
+      battle.winner = battle.players[winner].playerAddress;
+      if(!battle.winner.send(battle.stakePerPlayer * 2)) { // send stakes of both players in value to the winners playerAddress, 
         // failed / untrue, do nothing?
       }
+  }
+
+  function getWinner(uint256 _battle) public view returns(address winner){
+      Battle storage battle = battles[_battle];
+      return battle.winner;
   }
 
   function autoSwitchPepe(uint256 _battle, uint256 _player) internal {
       Battle storage battle = battles[_battle]; // battle loc
       for(uint256 i = 0; i < battle.players[_player].pepes.length; i ++) { //for all the pepes from this player
-          if(battle.players[_player].pepes[i].health > 0) { // check if current pepe is alive
+          if(battle.players[_player].pepes[i].health > 0) { // check if current-loop pepe is alive
              battle.players[_player].selectedPepe = uint8(i); // if alive, selected pepe int = current pepe.
              return; // returns / exits function if new pepe is selected.
           } // if not a new pepe is selected and no return is made
@@ -275,57 +286,6 @@ contract BattlesState {
       }
   }
 
-
-
-
-                        /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
- /*  function continueGameFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
-      Battle storage battle = battles[_battle];
-      
-       // battle selector. stack too deep. fix parameters?
-
-      require(_seq > battle.seq); //seq must be greater than current, no submitting old moves. 
-
-      bytes32 message = prefixed(keccak256(address(this), _seq, pepHealths, selectedPepe, randomHash, submittedMoves, revealedMoves )); 
-      // message exists of this contracts address. the new seq. pephealths, selectedpepe, randomhash, submittedmoves, revealedmoves. 
-      //These are send from the player thats trying to continue the state. these will be hashed.
-      require(recoverSigner(message, _signature) == battle.players[getOpponent(getPlayerOneOrTwo(_battle, msg.sender))].playerAddress);
-      // Require the recoverSigner function. taking the above message and a hashed signature the player got from his oppoment. if these match it means
-      // both parties agreed uppon all health. selected pepes. submitted moves. random hashes and seq and revealedMoves. 
-
-      // ???what if i dont like the new state. why would I sign it and send my message to my oppoment? 
-      // ???
-      //update STATE
-
-      battle.seq = _seq;
-
-      for(uint256 i = 0; i < pepHealths.length / 2; i ++) {
-          battle.players[0].pepes[i].health = pepHealths[i];
-      }(
-
-      for(uint256 ii = pepHealths.length / 2; ii < pepHealths.length; ii ++) {
-          battle.players[1].pepes[ii - pepHealths.length / 2].health = pepHealths[ii];
-      }
-
-      Player playerOne = battle.players[0];
-      Player playerTwo = battle.players[1];
-
-
-      playerOne.selectedPepe = selectedPepe[0];
-      playerTwo.selectedPepe = selectedPepe[1];
-
-      playerOne.randomHash = randomHash[0];
-      playerTwo.randomHash = randomHash[1];
-
-      playerOne.moveHash = submittedMoves[0];
-      playerTwo.moveHash = submittedMoves[1];
-
-      playerOne.move = revealedMoves[0];
-      playerTwo.move = revealedMoves[1]; // all these lines simply put the newly gotten values into the contract / update them from the parameters.
-
-      continueGame(_battle, _seq, _move,  _hash );(_battle, _seq, _move,  _hash ); // what does the middle ; do ? 
-     // again _hash might be either the randomhash or the movehhash... what do we do when its a movehash for submitting and there is no _move required or wanted yet?
-  } */
 
 
 /* Example of data coming in:.Battle;017.Seq;240.Peps;1234123412341234.Spep;0102.rhash;0x123450x12345.Smoves;0x1230x321.Rmoves;0503
