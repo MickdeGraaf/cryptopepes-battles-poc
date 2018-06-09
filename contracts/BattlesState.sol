@@ -63,7 +63,7 @@ contract BattlesState {
 
   function joinBattle(uint256 _battle, uint256[] _pepes, bytes32 _randomHash) payable public {
       Battle storage battle = battles[_battle]; // uses the _battle parameter number to find the correct battle in the contract to join.
-      require(battle.players[1].playerAddress == msg.sender || battle.players[1].playerAddress == address(0)); // requires player 2 to be the sender of this function or default?
+      require(battle.players[1].playerAddress == msg.sender || battle.players[1].playerAddress == address(0)); // requires player 2 to be the sender of this function, or being 0. meaning p1 did not select an enemy and anyone can be p2.
       require(battle.active == false); // requires this battle's status to be non active. 
 
       if(battle.players[1].playerAddress != msg.sender) { // if not yet set. set player 2 to be equal to msg sender
@@ -118,8 +118,8 @@ contract BattlesState {
         //!! its confusing that the submitMove _hash is a randomhash + move re-encrypted into a "movehash" combo while ...
       }
       else{
-          // !! ... here the _hash is the original randomhash + the original _move. to be compared later to be equal to "movehash" while re-encrypted. 
-        revealMove(_battle, _hash, _move); 
+          // !! ... here the _hash is the original randomhash.. and _move the original number move. to be compared later to be equal to "movehash" while re-encrypted. 
+        revealMove(_battle, _move, _hash); 
         // !! TL;DR. the parameter _hash might contrain 2 entirely diffrent things. 
       }
 
@@ -134,12 +134,12 @@ contract BattlesState {
   }
 
 
-  function revealMove(uint256 _battle, bytes32 _hash, uint8 _move) internal {
+  function revealMove(uint256 _battle, uint8 _move, bytes32 _hash) internal {
       Battle storage battle = battles[_battle]; // specify game
       uint8 player = getPlayerOneOrTwo(_battle, msg.sender); // find if sender is p1 or p2
-
-      require(battle.players[player].randomHash == keccak256(_hash)); // require the players random hash *(initial random set hash on join) to be equal to the _hash parameter send now.
-      require(battle.players[player].moveHash == keccak256(_move, _hash)); // requires player moveHash *(set in submit move above) to be equal to a chosen move + the random/initial hash.
+      
+      require(battle.players[player].randomHash == _hash); // require the players random hash *(initial random set hash on join) to be equal to the _hash parameter send now.
+     // require(battle.players[player].moveHash == keccak256(abi.encodePacked(_move, _hash))); // requires player moveHash *(set in submit move above) to be equal to a chosen move + the random/initial hash.
       // this means that the chosen move uppon "reveal" has to be the same as the move on "submit" and therefore unchanged. or the hash outcome would not equal
       battle.players[player].move = _move; // save the checked and submitted move to be excuted.
       battle.players[player].randomHash = _hash; // ?????? why are we setting the random hash again. its not changed as the player submits his old hash + move 
@@ -385,7 +385,11 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
         return mint;
     }
   
-
+//// encrption things.
+    function returnHashFromMoveAndHash(uint8 _move, bytes32 _hash) public pure returns (bytes32) {
+     //return keccak256("1s", 0x0AbdAce70D3790235af448C88547603b945604ea);
+       return keccak256(abi.encodePacked(_move, _hash));
+    }
 
 
   // Signature methods
