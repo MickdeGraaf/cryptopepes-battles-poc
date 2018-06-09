@@ -1,4 +1,4 @@
-let Battles = artifacts.require("Battles");
+let Battles = artifacts.require("BattlesState.sol");
 let sha3 = require('solidity-sha3');
 sha3 = sha3.default;
 
@@ -21,18 +21,20 @@ contract('Battles', function(accounts) {
 
   it("Starting a battle should work", async function() {
       battlesInstance = await Battles.deployed();
-      battlesInstance.newBattle([1,2,3,4,5], playerOneHashes[playerOneHashes.length - 1], "0x0000000000000000000000000000000000000000");
+      battlesInstance.newBattle([1,2], playerOneHashes[playerOneHashes.length - 1], "0x0000000000000000000000000000000000000000");
   });
 
   it("Joining a battle should work", async function() {
-      battlesInstance.joinBattle(0, [6,7,8,9,10], playerTwoHashes[playerTwoHashes.length - 1], {from: accounts[0]});
+    battlesInstance = await Battles.deployed();
+
+      battlesInstance.joinBattle(0, [3,4], playerTwoHashes[playerTwoHashes.length - 1], {from: accounts[1]});
   });
 
   it("Submitting a turn should work", async function() {
-
+      
   });
 
-  it("Submitting a turn twice should fail", asyc function() {
+  it("Submitting a turn twice should fail", async function() {
 
   });
 
