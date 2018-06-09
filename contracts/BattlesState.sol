@@ -45,7 +45,7 @@ contract BattlesState {
   function newBattle(uint256[] _pepes, bytes32 _randomHash, address _oponent) payable public {
       Battle storage battle = battles[battleCounter]; // creates new battle with ID of battleCounter
       battleCounter += 1; // increases for next battle to be higher
-
+      battle.seq = 0;
       battle.players.length = 2; // allows 2 players in array
 
       battle.players[0].playerAddress = msg.sender; // sets player 0 to be the sender of newBattle command
@@ -94,15 +94,15 @@ contract BattlesState {
   }
 
     function continueGame(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public { // renamed from 'move' to 'continueGame' to clarify its about the game state and nothing to do with pepe moves.
+      Battle storage battle = battles[_battle];
+      require(_seq >= battle.seq);
       require(_seq % 2 == getPlayerOneOrTwo(_battle, msg.sender)); // requires that the game seq modules 2 (4 % 2 = 0.... 5 % 2 = 1) 
 // to either be 0 or 1, so player 1 turn or player 2 turn,  then check if sender is player 1 or 2.  if sender of message is valid for turn.....
-
-
 // this is unfair however because this always makes player 2 the one to pay for reveal move and doTurn. 
 // i suggest a require boolean to check if a player already did submit move / revealed move. dont go into function. 
 // reset boolean at doTurn.
-// this might also eliminate the need to check at what seq you are as this does not matter. it will not reveal without both players having true on submit. 
-// it will not submit twice of increase seq for a player that tries to submit twice. 
+
+//not using seq for checking wich player turns is easier for frontend aswell. 
 
       if(_seq % 4 < 2) { // we start at 0. so
         /* 
@@ -123,7 +123,7 @@ contract BattlesState {
         // !! TL;DR. the parameter _hash might contrain 2 entirely diffrent things. 
       }
 
-      battles[_battle].seq += 1; // increase seq / turns. proceed to next move.
+      battle.seq = _seq; // increase seq / turns. proceed to next move.
 
   }
 
