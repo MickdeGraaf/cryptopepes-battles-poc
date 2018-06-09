@@ -139,7 +139,7 @@ contract BattlesState {
       uint8 player = getPlayerOneOrTwo(_battle, msg.sender); // find if sender is p1 or p2
       
       require(battle.players[player].randomHash == _hash); // require the players random hash *(initial random set hash on join) to be equal to the _hash parameter send now.
-     // require(battle.players[player].moveHash == keccak256(abi.encodePacked(_move, _hash))); // requires player moveHash *(set in submit move above) to be equal to a chosen move + the random/initial hash.
+      require(battle.players[player].moveHash == keccak256(abi.encodePacked(_move, _hash))); // requires player moveHash *(set in submit move above) to be equal to a chosen move + the random/initial hash.
       // this means that the chosen move uppon "reveal" has to be the same as the move on "submit" and therefore unchanged. or the hash outcome would not equal
       battle.players[player].move = _move; // save the checked and submitted move to be excuted.
       battle.players[player].randomHash = _hash; // ?????? why are we setting the random hash again. its not changed as the player submits his old hash + move 
@@ -387,7 +387,7 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
   
 //// encrption things.
     function returnHashFromMoveAndHash(uint8 _move, bytes32 _hash) public pure returns (bytes32) {
-     //return keccak256("1s", 0x0AbdAce70D3790235af448C88547603b945604ea);
+     // can be removed later. used for truffle testing.
        return keccak256(abi.encodePacked(_move, _hash));
     }
 

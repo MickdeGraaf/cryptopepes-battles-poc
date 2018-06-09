@@ -28,6 +28,8 @@ let battleid = 0;
 let playerOneMove = 5;
 let playerTwoMove = 3;
 
+
+
 contract('Battles', function(accounts) {
 
   it("Starting a battle should work", async function() {
@@ -39,9 +41,9 @@ contract('Battles', function(accounts) {
       battlesInstance.joinBattle(battleid, [3,4], playerTwoRandomHash, {from: accounts[1]});
   });
 
-  it("get battle stats seq should be 0 ", async function() {
+  it("Get battle stats seq should be 0 ", async function() {
     var stats = (await battlesInstance.getBattleStats1.call(0));
-    //console.log(moves);
+    //console.log(stats);
     assert.equal(stats[0], 0);
 });
 
@@ -52,6 +54,7 @@ contract('Battles', function(accounts) {
         ["uint8", "bytes32"],
         [playerOneMove, playerOneRandomHash]
       ).toString("hex");
+      console.log(moveHash);
       battlesInstance.continueGame(battleid, seq, null, moveHash, {from: accounts[0]});
   });
   /** Player 1 submitting move using seq of 0. 
@@ -59,7 +62,7 @@ Player 2 has to wait?  Player 2 submitting move seq has to be 1..  How to show i
 "wait for p1 to sub move.." or submit the move of p2 whenever but only excute submit after 1. this will require a web3call to check if p1 submitted? ..
  */
 
-  it("P1 continueGame and submitting move twice while not p1's turn should revert", async function() {
+  it("P1 continueGame and submitting move twice while not P1's turn should revert", async function() {
     var seq = 1;
     var moveHash = "0x" + ethereumjsabi.soliditySHA3(
         ["uint8", "bytes32"],
@@ -78,7 +81,7 @@ Player 2 has to wait?  Player 2 submitting move seq has to be 1..  How to show i
     battlesInstance.continueGame(battleid, seq, null, moveHash, {from: accounts[1]});
 });
 
-it("get battle stats seq should be 1 ", async function() {
+it("Get battle stats seq should be 1 ", async function() {
     var stats = (await battlesInstance.getBattleStats1.call(0));
     assert.equal(stats[0], 1);
 });
@@ -92,19 +95,44 @@ it("P1 continueGame with a lower seq should revert", async function() {
     await tryCatch(battlesInstance.continueGame(battleid, seq, null, moveHash,  {from: accounts[0]}),errTypes.revert);
   });
 
-  it("Should Return a hash keccak256 & should equal ethereumjsabi.soliditySHA3. ", async function(){
+  it("Should Return a P1 hash keccak256 & should equal P1 ethereumjsabi.soliditySHA3. ", async function(){
     var kekkack256 = (await battlesInstance.returnHashFromMoveAndHash(playerOneMove, playerOneRandomHash,  {from: accounts[0]})) ;
     console.log(kekkack256);
-    
-
+    var moveHash = "0x" + ethereumjsabi.soliditySHA3(
+      ["uint8", "bytes32"],
+      [playerOneMove, playerOneRandomHash]
+    ).toString("hex");
+    assert.equal(kekkack256,moveHash);
   });
-
-  
+ 
 
   it("P1 continueGame doing move-reveal should work", async function(){
     var seq = 2;
     battlesInstance.continueGame(battleid, seq, playerOneMove, playerOneRandomHash,  {from: accounts[0]});
   });
+
+  it("Get battle stats P1, move should be revealed and 5 ", async function() {
+    var stats = (await battlesInstance.getBattleStats3.call(0));
+    assert.equal(stats[2], 5);
+  });
+
+  it("Get Pepe's health should be 999", async function() {
+    var stats = (await battlesInstance.getBattleStats1.call(0));
+    assert.equal(stats[3], 999);
+    assert.equal(stats[5], 999);
+});
+
+  it("P2 continueGame doing move-reveal should work", async function(){
+    var seq = 3;
+    battlesInstance.continueGame(battleid, seq, playerTwoMove, playerTwoRandomHash,  {from: accounts[1]});
+  });
+
+  it("Get Pepe's health should be lower then 999", async function() {
+    var stats = (await battlesInstance.getBattleStats1.call(0));
+    assert.notEqual(stats[2], 999);
+    assert.notEqual(stats[4], 999);
+});
+
 
 
 

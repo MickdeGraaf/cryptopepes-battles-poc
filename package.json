@@ -21,6 +21,7 @@
   "homepage": "https://github.com/MickdeGraaf/cryptopepes-battles-poc#readme",
   "dependencies": {
     "ethereumjs-abi": "^0.6.5",
+    "solidity-sha3": "^0.4.1",
     "truffle-hdwallet-provider": "0.0.5"
   }
 }
