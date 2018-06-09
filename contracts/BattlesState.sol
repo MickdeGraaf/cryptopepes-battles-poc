@@ -93,6 +93,13 @@ contract BattlesState {
     // constructor
   }
 
+  function returnRandomHash (uint256 _battle) public view returns(bytes32){
+      Battle storage battle = battles[_battle];
+      uint player = getPlayerOneOrTwo(_battle, msg.sender);
+      bytes32 randomHash = battle.players[player].randomHash;
+      return randomHash;
+  }
+
     function continueGame(uint256 _battle, uint256 _seq, uint8 _move, bytes32 _hash) public { // renamed from 'move' to 'continueGame' to clarify its about the game state and nothing to do with pepe moves.
       Battle storage battle = battles[_battle];
       require(_seq >= battle.seq);
@@ -111,7 +118,11 @@ contract BattlesState {
         2.R % 4 = 2 = reveal
         3.R % 4 = 3 = reveal
         4.S % 4 = 0 = sub
-        5.S % 4 = 1 = sub */
+        5.S % 4 = 1 = sub 
+        6.R % 4 = 2 = reveal
+        7.R % 4 = 3 = reveal
+        */
+    
         submitMove(_battle, _hash); // !!!!!!!! the _move parameter is always needed to call this function.
         //!!!!!! however in the submit move seq there is no _move to submit just the encoded hash!
 
@@ -134,16 +145,15 @@ contract BattlesState {
   }
 
 
-  function revealMove(uint256 _battle, uint8 _move, bytes32 _hash) internal {
+  function revealMove(uint256 _battle, uint8 _move, bytes32 _hash) internal { //???? why are we calling it _hash and not _randomHash as its always a randomhash? 
       Battle storage battle = battles[_battle]; // specify game
       uint8 player = getPlayerOneOrTwo(_battle, msg.sender); // find if sender is p1 or p2
-      
+      bytes32 moveHash = keccak256(abi.encodePacked(_move, _hash));
       require(battle.players[player].randomHash == _hash); // require the players random hash *(initial random set hash on join) to be equal to the _hash parameter send now.
-      require(battle.players[player].moveHash == keccak256(abi.encodePacked(_move, _hash))); // requires player moveHash *(set in submit move above) to be equal to a chosen move + the random/initial hash.
+      require(battle.players[player].moveHash == moveHash); // requires player moveHash *(set in submit move above) to be equal to a chosen move + the random/initial hash.
       // this means that the chosen move uppon "reveal" has to be the same as the move on "submit" and therefore unchanged. or the hash outcome would not equal
       battle.players[player].move = _move; // save the checked and submitted move to be excuted.
-      battle.players[player].randomHash = _hash; // ?????? why are we setting the random hash again. its not changed as the player submits his old hash + move 
-      //???? why are we calling it _hash and not _randomHash as its done when creating the game? 
+      battle.players[player].randomHash = moveHash; // setting the randomHash to be the movehash. 
       battle.players[player].hasRevealed = true; // sets hasRevealed to true for player that reveals move. 
     /*   if(battle.seq % 4 == 0) { // check if current move in set is 4th, invalid as seq starts at 0. and also unfair for paying.
           doTurn(_battle);
@@ -153,6 +163,8 @@ contract BattlesState {
       {
           // if both players revealed. the last player that reveals has to pay for doTurn. 
           // currently this is always player 2 as its still based on continueGame function. See new idea.
+          battle.players[player].hasRevealed = false;
+          battle.players[getOpponent(player)].hasRevealed = false;
           doTurn(_battle);
       }
   }
@@ -165,10 +177,10 @@ contract BattlesState {
 // seq = 3. % 
 
 // we want this function to be paid by the slowest player. last revealing. see above. We want the move's to excute on pepe speed order. incase of a draw. player last revealed goes second.
+// pepe switch should always go before any normal moves.
+// ?? how are we going to calculate stats of pepe. 
       doMove(_battle, playerFirst);
       doMove(_battle, playerSecond);
-
-
   }
 
   function doMove(uint256 _battle, uint8 _player) internal {
@@ -184,6 +196,7 @@ contract BattlesState {
 
       if(move > 9){ //if the player is switching pepe he has to use a move above 10, 10 being the lowest and selecting pepe 0. 
       // maybe find a better way to deal with this so that the game moves can eventually get extended. 
+      // pepe switch should always go before any normal moves.. 
           uint8 pepeSelected = move - 10;
           if(pepeSelected > battle.players[_player].pepes.length || battle.players[_player].pepes[pepeSelected].health == 0) {
             handleLoss(_battle, _player);//player tried to select non existent or dead pepe he dies. got to have this secured in GUI
