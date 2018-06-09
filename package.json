@@ -1,0 +1,25 @@
+{
+  "name": "cryptopepes-battles-poc",
+  "version": "1.0.0",
+  "description": "Battle demo.",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MickdeGraaf/cryptopepes-battles-poc.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MickdeGraaf/cryptopepes-battles-poc/issues"
+  },
+  "homepage": "https://github.com/MickdeGraaf/cryptopepes-battles-poc#readme",
+  "dependencies": {
+    "truffle-hdwallet-provider": "0.0.5"
+  }
+}

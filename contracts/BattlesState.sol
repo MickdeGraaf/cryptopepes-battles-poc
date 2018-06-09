@@ -17,17 +17,31 @@ contract BattlesState {
       bytes32 randomHash;
       bool hasRevealed;
   }
-  mapping (uint256 => Battle) public battles;
-  uint256 battleCounter;
 
   struct Battle {
       uint256 seq;
       Player[] players;
       uint256 stakePerPlayer;
-      address lastPlayerMoved;
+      address lastPlayerMoved;//notused
       bool active;
   }
 
+  mapping (uint256 => Battle) public battles;
+  uint256 battleCounter;
+  
+  
+  function getBattleStats1(uint256 _battleid) view public returns (uint, bool, uint256,uint256,uint256,uint256) {
+        return (battles[_battleid].seq,  battles[_battleid].active, battles[_battleid].players[0].pepes[0].health, battles[_battleid].players[0].pepes[1].health,    battles[_battleid].players[1].pepes[0].health,  battles[_battleid].players[1].pepes[1].health        );
+    }
+    
+      function getBattleStats2(uint256 _battleid) view public returns ( uint8,uint8,bytes32,bytes32) {
+        return (battles[_battleid].players[0].selectedPepe, battles[_battleid].players[1].selectedPepe,      battles[_battleid].players[0].randomHash,      battles[_battleid].players[1].randomHash    );
+    }
+       function getBattleStats3(uint256 _battleid) view public returns ( bytes32,bytes32,uint8,uint8) {
+        return (battles[_battleid].players[0].moveHash,        battles[_battleid].players[1].moveHash,        battles[_battleid].players[0].move,        battles[_battleid].players[1].move    );
+    }
+  
+  
   function newBattle(uint256[] _pepes, bytes32 _randomHash, address _oponent) payable public {
       Battle storage battle = battles[battleCounter]; // creates new battle with ID of battleCounter
       battleCounter += 1; // increases for next battle to be higher
@@ -39,7 +53,7 @@ contract BattlesState {
       battle.players[0].randomHash = _randomHash; // sets initial random hash. player creates this.
 
       for(uint256 i = 0; i < _pepes.length; i ++) { // adds default pepes based on _pepes parameter (for exmp 10)
-          battle.players[0].pepes.push(BattlePep(_pepes[i], 10000));
+          battle.players[0].pepes.push(BattlePep(_pepes[i], 999));
       }
 
       battle.stakePerPlayer = msg.value; // sets ETH stake to be equal to the amount send with message
@@ -62,7 +76,7 @@ contract BattlesState {
       battle.players[1].randomHash = _randomHash; // saves players 2 initial random hash.
 
       for(uint256 i = 0; i < _pepes.length; i ++) { // adds p2 pepes to battle
-          battle.players[1].pepes.push(BattlePep(_pepes[i], 10000));
+          battle.players[1].pepes.push(BattlePep(_pepes[i], 999));
       }
 
       battle.active = true; // sets battle active so its not to be joined again
@@ -73,9 +87,9 @@ contract BattlesState {
 
   event NewBattle(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256[] pepes, uint256 stake);
   event BattleStarted(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256 stake);
+  
 
-
-  constructor() {
+  constructor() public payable {
     // constructor
   }
 
@@ -225,7 +239,7 @@ contract BattlesState {
       handleLoss(_battle, _player); // then handle loss for current player
   }
 
-  function getOpponent(uint8 _player) returns(uint8 oponent) {
+  function getOpponent(uint8 _player) internal pure returns(uint8 oponent)  {
       if(_player == 0){ // gets the opponent from the player number send in.
         oponent = 1;
       }
@@ -252,7 +266,7 @@ contract BattlesState {
 
 
                         /* STATE -------------------------------------------------------------------------------------------------------------------------------------------*/ /* move ------------------------------------------------- */
-  function continueGameFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
+ /*  function continueGameFromState(uint256 _battle, uint8 _seq, uint256[] pepHealths, uint8[2] selectedPepe, bytes32[2] randomHash, bytes32[2] submittedMoves, uint8[2] revealedMoves, bytes32 _hash, uint8 _move, bytes _signature ) public {
       Battle storage battle = battles[_battle];
       
        // battle selector. stack too deep. fix parameters?
@@ -298,31 +312,81 @@ contract BattlesState {
 
       continueGame(_battle, _seq, _move,  _hash );(_battle, _seq, _move,  _hash ); // what does the middle ; do ? 
      // again _hash might be either the randomhash or the movehhash... what do we do when its a movehash for submitting and there is no _move required or wanted yet?
-  }
+  } */
 
-  function continueGameFromState2(bytes fullState, bytes _playerStateHashed, bytes _opponentStateHashed, bytes32 _randOrMoveHash, uint8 _move){ // not sure if correct useage of underscore
 
-    require(recoverSigner(_playerStateHashed, _opponentStateHashed) == battle.players[getOpponent(getPlayerOneOrTwo(_battle, msg.sender))].playerAddress);
+/* Example of data coming in:.Battle;017.Seq;240.Peps;1234123412341234.Spep;0102.rhash;0x123450x12345.Smoves;0x1230x321.Rmoves;0503
+. to indicate a new parameter. 
+; to indicate data coming from it.
+Currently data is not seperated so must be fixed sized (000-999 for battles. 0000 - 9999 for pepeshealth, 32 for hashes ec.)
+First prototype will have fixed size states starting at fixed indexes.
+Second step is to seperate by string search. 
+Final step is to seperate state data to allow for dynamic amounts of pepe,  */
+
+
+  function continueGameFromState2(string fullState, bytes32 _playerStateHashed, bytes _opponentStateHashed, bytes32 _randOrMoveHash, uint8 _move) public { // not sure if correct useage of underscore
+    uint battleid = parseInt(substring(fullState,7,10),3);// see data exmp above. read from 7 to 10 to get battleid
+    Battle storage battle = battles[battleid]; 
+       
+   // require(recoverSigner(_playerStateHashed, _opponentStateHashed) == battle.players[getOpponent(getPlayerOneOrTwo(battleid, msg.sender))].playerAddress);
     //client side hash the full state. (contract adds, healths....ect) and called it '_playerStateHashed' AKA message, 
     //use the opponent's version '_opponentStateHashed' AKA signature. should return the adress of opponent and if so. both parties agreed on state.
 
+    battle.seq = parseInt(substring(fullState,15,18),3);
 
+    Player storage playerOne = battle.players[0];
+    Player storage playerTwo = battle.players[1];
+
+    playerOne.pepes[0].health = parseInt(substring(fullState,24,28),4);
+    playerOne.pepes[1].health = parseInt(substring(fullState,28,32),4);
+    playerTwo.pepes[0].health = parseInt(substring(fullState,32,36),4);
+    playerTwo.pepes[1].health = parseInt(substring(fullState,36,40),4);
+
+    playerOne.selectedPepe = uint8(parseInt(substring(fullState,46,48),2));
+    playerTwo.selectedPepe = uint8(parseInt(substring(fullState,48,50),2));
+
+    playerOne.randomHash = bytes32(parseInt(substring(fullState,57,64),7));// should prob be 32.. just for testing
+    playerTwo.randomHash = bytes32(parseInt(substring(fullState,64,71),7));
+
+    playerOne.moveHash = bytes32(parseInt(substring(fullState,79,84),5)); // should be 32
+    playerTwo.moveHash = bytes32(parseInt(substring(fullState,84,89),5));
+
+    playerOne.move = uint8(parseInt(substring(fullState,97,99),2));
+    playerTwo.move = uint8(parseInt(substring(fullState,99,101),2)); 
+
+   // continueGame(battleid, battle.seq, _move, _randOrMoveHash );(battleid, battle.seq, _move, _randOrMoveHash ); // using newly saved battle and seq and using send hash/move to continue.
   }  
 
-  function getBattleFromStateBytes(bytes fullState) internal pure returns (uint256) 
-  {
-      //make a require fullState to be of some length. 
-      uint256 _battle // ? should battle not be a int16, this might overkill.
 
-      assembly {
-          //bytes start after 32 because length prefix
-          _battle := byte(3, mload(add(sig, 32)))
-          //first 3 bytes of the state, should allow for 999 game rooms for now. 
-      }
-      
-  }
 
-  // Method to convert state hex(a str) to 
+////state restore string helpers.
+    function substring(string str, uint startIndex, uint endIndex) internal pure returns (string) {
+        bytes memory strBytes = bytes(str);
+        bytes memory result = new bytes(endIndex-startIndex);
+        for(uint i = startIndex; i < endIndex; i++) {
+            result[i-startIndex] = strBytes[i];
+        }
+        return string(result);
+    }
+    function parseInt(string _a, uint _b) internal pure returns (uint) {
+        bytes memory bresult = bytes(_a);
+        uint mint = 0;
+        bool decimals = false;
+        for (uint i = 0; i < bresult.length; i++) {
+            if ((bresult[i] >= 48) && (bresult[i] <= 57)) {
+              if (decimals) {
+                if (_b == 0) break;
+                else _b--;
+            }
+            mint *= 10;
+            mint += uint(bresult[i]) - 48;
+            } else if (bresult[i] == 46) decimals = true;
+        }
+        return mint;
+    }
+  
+
+
 
   // Signature methods
 
