@@ -88,7 +88,7 @@ contract BattlesState {
 
   event NewBattle(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256[] pepes, uint256 stake);
   event BattleStarted(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256 stake);
-  
+  event PayOutFail(address indexed winner, uint256 stake);
 
   constructor() public payable {
     // constructor
@@ -244,6 +244,7 @@ contract BattlesState {
       battle.winner = battle.players[winner].playerAddress;
       if(!battle.winner.send(battle.stakePerPlayer * 2)) { // send stakes of both players in value to the winners playerAddress, 
         // failed / untrue, do nothing?
+        emit PayOutFail(battle.winner, battle.stakePerPlayer * 2);
       }
   }
 

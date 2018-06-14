@@ -3,13 +3,14 @@ let sha3 = require('solidity-sha3');
 let tryCatch = require("../helpers/exceptions.js").tryCatch;
 let errTypes = require("../helpers/exceptions.js").errTypes;
 var ethereumjsabi = require('ethereumjs-abi') // replace with web3.utils? 1.0?
+var Web3Utils = require('web3-utils');
 
 sha3 = sha3.default;
 
 let battlesInstance;
 
 
-let playerOneHashes = [];
+/* let playerOneHashes = [];
 let playerTwoHashes = [];
 
 playerOneHashes.push(sha3(68657057));
@@ -21,29 +22,49 @@ for(var i = 0; i < 1000; i ++) {
   playerTwoHashes.push(sha3(playerTwoHashes[i]));
 }
 
-playerOneRandomHash = playerOneHashes[playerOneHashes.length - 1];
-playerTwoRandomHash = playerTwoHashes[playerTwoHashes.length - 1];
+//playerOneRandomHash = playerOneHashes[playerOneHashes.length - 1];
+//playerTwoRandomHash = playerTwoHashes[playerTwoHashes.length - 1];
+console.log(playerOneHashes[playerOneHashes.length - 1]);
+console.log(playerTwoHashes[playerTwoHashes.length - 1]); */
+let playerOneRandomHash = '0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9'
+let playerTwoRandomHash = '0xa7b77a420908ff0fc96fc28f92f2286c0dd9c659cc812e87b1e46eb687dcd617'
 
 let battleid = 0;
 let playerOneMove = 5;
 let playerTwoMove = 3;
 let seq = 0;
 let startHealth = 30;
-let stakeAmount = 0.5;
+let stakeAmount = 2.5;
 let balancePlayerOne;
 
 contract('Full battle.', function(accounts) {
+  
 
   it("Starting a battle should work", async function() {
       battlesInstance = await Battles.deployed();
       battlesInstance.newBattle([1,2], playerOneRandomHash, "0x0000000000000000000000000000000000000000", {value: web3.toWei(stakeAmount, "ether"), from: accounts[0]});
+     
+      var NewBattle = battlesInstance.NewBattle( {fromBlock: 0, toBlock: 'latest'});
+      NewBattle.watch(function(error, result){
+       //console.log(result);
+       NewBattle.stopWatching();
     });
+
+    var PayOutFail = battlesInstance.PayOutFail( {fromBlock: 0, toBlock: 'latest'});
+    PayOutFail.watch(function(error, result){
+     console.log(result);
+     console.log(error);
+     PayOutFail.stopWatching();
+  });
+    });
+
+    
 
   it("Joining a battle should work", async function() {
       battlesInstance.joinBattle(battleid, [3,4], playerTwoRandomHash, {value: web3.toWei(stakeAmount, "ether"),from: accounts[1]});
   });
 
-  it("Contract should own stake times 2 eth", async function() {
+  it("Contract should own stake times 2 eth. currently: " + stakeAmount *2, async function() {
     var bal = web3.eth.getBalance(battlesInstance.address).toString();
     assert.equal(web3.fromWei(bal, 'ether'), stakeAmount *2);
 });
@@ -51,6 +72,7 @@ contract('Full battle.', function(accounts) {
 
 it("Getting P1 balance. Saving for later.", async function() {
   balancePlayerOne = web3.eth.getBalance(accounts[0]).toString();
+  console.log(balancePlayerOne);
 });
 
 
@@ -61,12 +83,10 @@ it("Getting P1 balance. Saving for later.", async function() {
 
   it("P1 continueGame and submitting move should work", async function() {
       var seq =0;
-     //console.log("Het volgende moet gehashed worden: " + playerOneMove + playerOneRandomHash);
      var moveHash = "0x" + ethereumjsabi.soliditySHA3(
         ["uint8", "bytes32"],
         [playerOneMove, playerOneRandomHash]
       ).toString("hex");
-    //  console.log(moveHash);
       battlesInstance.continueGame(battleid, seq, null, moveHash, {from: accounts[0]});
   });
   /** Player 1 submitting move using seq of 0. 
@@ -107,13 +127,14 @@ it("P1 continueGame with a lower seq should revert", async function() {
     await tryCatch(battlesInstance.continueGame(battleid, seq, null, moveHash,  {from: accounts[0]}),errTypes.revert);
   });
 
-  it("Should Return a P1 hash keccak256 & should equal P1 ethereumjsabi.soliditySHA3. ", async function(){
+  it("Should Return a P1 movehash keccak256 & should equal P1 web3 1.0 utils.soliditySHA3. ", async function(){
     var kekkack256 = (await battlesInstance.returnHashFromMoveAndHash(playerOneMove, playerOneRandomHash,  {from: accounts[0]})) ;
-    //console.log(kekkack256);
-    var moveHash = "0x" + ethereumjsabi.soliditySHA3(
+   // console.log(kekkack256);
+    var moveHash = Web3Utils.soliditySha3({t: 'uint8', v: playerOneMove}, {t: 'bytes32', v:playerOneRandomHash});
+   /*  var moveHash = "0x" + ethereumjsabi.soliditySHA3(
       ["uint8", "bytes32"],
       [playerOneMove, playerOneRandomHash]
-    ).toString("hex");
+    ).toString("hex"); */
     assert.equal(kekkack256,moveHash);
   });
  
@@ -237,6 +258,7 @@ it("P2's move should be 0 because his pepe died before excuting ", async functio
 
 it("P1 submit move and tries to end game. P2 skips by submitting 0. 3 times", async function(){
   //----------------turn 1
+  console.log("turn 1");
   //p1
   playerOneRandomHash = (await battlesInstance.returnRandomHash(battleid,  {from: accounts[0]})) ;
   seq = seq +=1;
@@ -261,7 +283,9 @@ it("P1 submit move and tries to end game. P2 skips by submitting 0. 3 times", as
   //p2
   seq = seq +=1;
   battlesInstance.continueGame(battleid, seq, playerTwoMove, playerTwoRandomHash,  {from: accounts[1]});
-   //----------------turn 2
+  console.log("turn 1 ends"); 
+  //----------------turn 2
+   console.log("turn 2");
   //p1
   playerOneRandomHash = (await battlesInstance.returnRandomHash(battleid,  {from: accounts[0]})) ;
   seq = seq +=1;
@@ -286,7 +310,9 @@ it("P1 submit move and tries to end game. P2 skips by submitting 0. 3 times", as
   //p2
   seq = seq +=1;
   battlesInstance.continueGame(battleid, seq, playerTwoMove, playerTwoRandomHash,  {from: accounts[1]});
-   //----------------turn 3
+  console.log("turn 2 ends"); 
+  //----------------turn 3
+   console.log("turn 3");
   //p1
   playerOneRandomHash = (await battlesInstance.returnRandomHash(battleid,  {from: accounts[0]})) ;
   seq = seq +=1;
@@ -311,7 +337,7 @@ it("P1 submit move and tries to end game. P2 skips by submitting 0. 3 times", as
   //p2
   seq = seq +=1;
   battlesInstance.continueGame(battleid, seq, playerTwoMove, playerTwoRandomHash,  {from: accounts[1]});
-  
+  console.log("turn 3 ends");
 });
 
 it("Battle winner address should be player one's adres", async function(){
@@ -328,7 +354,8 @@ it("Contract should own 0.0 eth", async function() {
 it("Winner should own more eth then start", async function() {
   var winner = (await battlesInstance.getWinner.call(0));
   var bal = web3.eth.getBalance(winner).toString();
-  assert.isAbove(balancePlayerOne, bal)
+  console.log(bal);
+  assert.isAbove(parseInt(bal),balancePlayerOne);
 });
 
 it("ContinueGame after finish should fail.", async function() {
@@ -338,6 +365,7 @@ it("ContinueGame after finish should fail.", async function() {
       [playerOneMove, playerOneRandomHash]
     ).toString("hex");
   await tryCatch(battlesInstance.continueGame(battleid, seq, null, moveHash,  {from: accounts[0]}),errTypes.revert);
+
 });
 
 
