@@ -5,6 +5,8 @@ let errTypes = require("../helpers/exceptions.js").errTypes;
 var ethereumjsabi = require('ethereumjs-abi') // replace with web3.utils? 1.0?
 var Web3Utils = require('web3-utils');
 
+
+
 sha3 = sha3.default;
 
 let battlesInstance;
