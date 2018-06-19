@@ -30,7 +30,7 @@ contract BattlesState {
   mapping (uint256 => Battle) public battles;
   uint256 battleCounter;
   
-  
+ 
   function getBattleStats1(uint256 _battleid) view public returns (uint, bool, uint256,uint256,uint256,uint256) {
         return (battles[_battleid].seq,  battles[_battleid].active, battles[_battleid].players[0].pepes[0].health, battles[_battleid].players[0].pepes[1].health,    battles[_battleid].players[1].pepes[0].health,  battles[_battleid].players[1].pepes[1].health        );
     }
@@ -41,8 +41,7 @@ contract BattlesState {
        function getBattleStats3(uint256 _battleid) view public returns ( bytes32,bytes32,uint8,uint8) {
         return (battles[_battleid].players[0].moveHash,        battles[_battleid].players[1].moveHash,        battles[_battleid].players[0].move,        battles[_battleid].players[1].move    );
     }
-  
-  
+
   function newBattle(uint256[] _pepes, bytes32 _randomHash, address _oponent) payable public {
       Battle storage battle = battles[battleCounter]; // creates new battle with ID of battleCounter
       battleCounter += 1; // increases for next battle to be higher
@@ -89,6 +88,7 @@ contract BattlesState {
   event NewBattle(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256[] pepes, uint256 stake);
   event BattleStarted(uint256 ID, address indexed playerOne, address indexed playerTwo, uint256 stake);
   event PayOutFail(address indexed winner, uint256 stake);
+
 
   constructor() public payable {
     // constructor
@@ -298,7 +298,7 @@ Second step is to seperate by string search.
 Final step is to seperate state data to allow for dynamic amounts of pepe,  */
 
 
-  function continueGameFromState2(string fullState, bytes32 _playerStateHashed, bytes _opponentStateHashed, bytes32 _randOrMoveHash, uint8 _move) public { // not sure if correct useage of underscore
+  function continueGameFromState(string fullState,  bytes32 _playerStateHashed, bytes _opponentStateHashed, bytes32 _randOrMoveHash, uint8 _move ) public { // not sure if correct useage of underscore
     uint battleid = parseInt(substring(fullState,7,10),3);// see data exmp above. read from 7 to 10 to get battleid
     Battle storage battle = battles[battleid]; 
        
@@ -306,7 +306,9 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
     //client side hash the full state. (contract adds, healths....ect) and called it '_playerStateHashed' AKA message, 
     //use the opponent's version '_opponentStateHashed' AKA signature. should return the adress of opponent and if so. both parties agreed on state.
 
-    battle.seq = parseInt(substring(fullState,15,18),3);
+    require(battle.seq < parseInt(substring(fullState,15,18),3));
+    battle.seq = parseInt(substring(fullState,15,18),3) + 1;
+
 
     Player storage playerOne = battle.players[0];
     Player storage playerTwo = battle.players[1];
@@ -316,22 +318,118 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
     playerTwo.pepes[0].health = parseInt(substring(fullState,32,36),4);
     playerTwo.pepes[1].health = parseInt(substring(fullState,36,40),4);
 
+    
     playerOne.selectedPepe = uint8(parseInt(substring(fullState,46,48),2));
     playerTwo.selectedPepe = uint8(parseInt(substring(fullState,48,50),2));
 
-    playerOne.randomHash = bytes32(parseInt(substring(fullState,57,64),7));// should prob be 32.. just for testing
-    playerTwo.randomHash = bytes32(parseInt(substring(fullState,64,71),7));
+    playerOne.randomHash = bytes32(stringToBytes32(substring(fullState,57,123)));
+    playerTwo.randomHash = bytes32(parseInt(substring(fullState,123,189),66));
 
-    playerOne.moveHash = bytes32(parseInt(substring(fullState,79,84),5)); // should be 32
-    playerTwo.moveHash = bytes32(parseInt(substring(fullState,84,89),5));
+    playerOne.moveHash = bytes32(parseInt(substring(fullState,197,263),66)); 
+    playerTwo.moveHash = bytes32(parseInt(substring(fullState,263,329),66));
 
-    playerOne.move = uint8(parseInt(substring(fullState,97,99),2));
-    playerTwo.move = uint8(parseInt(substring(fullState,99,101),2)); 
+    playerOne.move = uint8(parseInt(substring(fullState,337,339),2));
+    playerTwo.move = uint8(parseInt(substring(fullState,339,341),2)); 
 
    // continueGame(battleid, battle.seq, _move, _randOrMoveHash );(battleid, battle.seq, _move, _randOrMoveHash ); // using newly saved battle and seq and using send hash/move to continue.
   }  
 
+  function continueGameFromStateBytes(string fullState,  bytes32 _playerStateHashed, bytes _opponentStateHashed, bytes32 _randOrMoveHash, uint8 _move ) public { // not sure if correct useage of underscore
+/*     uint battleid = 0;
+    Battle storage battle = battles[battleid];  */
+       
+   // require(recoverSigner(_playerStateHashed, _opponentStateHashed) == battle.players[getOpponent(getPlayerOneOrTwo(battleid, msg.sender))].playerAddress);
+    //client side hash the full state. (contract adds, healths....ect) and called it '_playerStateHashed' AKA message, 
+    //use the opponent's version '_opponentStateHashed' AKA signature. should return the adress of opponent and if so. both parties agreed on state.
 
+/*     require(battle.seq < 999);
+    battle.seq = .. + 1;
+
+
+    Player storage playerOne = battle.players[0];
+    Player storage playerTwo = battle.players[1];
+
+    playerOne.pepes[0].health =
+    playerOne.pepes[1].health = 
+    playerTwo.pepes[0].health = 
+    playerTwo.pepes[1].health = 
+
+    
+    playerOne.selectedPepe = 
+    playerTwo.selectedPepe = 
+
+    playerOne.randomHash =
+    playerTwo.randomHash =
+
+    playerOne.moveHash =  
+    playerTwo.moveHash =
+
+    playerOne.move =
+    playerTwo.move =  */
+
+   // continueGame(battleid, battle.seq, _move, _randOrMoveHash );(battleid, battle.seq, _move, _randOrMoveHash ); // using newly saved battle and seq and using send hash/move to continue.
+  }  
+
+function decomposeState(bytes _state, uint8 battleid) public 
+  returns(
+    uint8 _seq,  
+    uint256 _p1p1h, 
+    uint256 _p1p2h, 
+    uint256 _p2p1h, 
+    uint256 _p2p2h) {
+    
+    assembly {
+      _seq := mload(add(_state, 32))
+      _p1p1h := mload(add(_state, 64))
+      _p1p2h := mload(add(_state, 96))
+      _p2p1h := mload(add(_state, 128))
+      _p2p2h := mload(add(_state, 160))
+    }
+    setState(battleid,_seq,_p1p1h,_p1p2h,_p2p1h,_p2p2h);
+}
+
+function setState(
+    uint8 _battleid, 
+    uint8 _seq, 
+    uint256 _p1p1h,
+    uint256 _p1p2h,
+    uint256 _p2p1h, 
+    uint256 _p2p2h//,
+   /*  uint8 _p1selp,
+    uint8 _p2selp,
+    bytes32 _p1randhash,
+    bytes32 _p2randhash,
+    bytes32 _p1movehash,
+    bytes32 _p2movehash,
+    uint8 _p1move,
+    uint8 _p2move */
+     ) internal {
+
+        uint battleid = _battleid;
+        Battle storage battle = battles[battleid];
+      //  require(battle.seq < _seq);
+        battle.seq = _seq +1;
+        Player storage playerOne = battle.players[0];
+        Player storage playerTwo = battle.players[1];
+        playerOne.pepes[0].health = _p1p1h;
+        playerOne.pepes[1].health = _p1p2h;
+        playerTwo.pepes[0].health = _p2p1h;
+        playerTwo.pepes[1].health = _p2p2h;
+
+       /*  
+        playerOne.selectedPepe = _p1selp;
+        playerTwo.selectedPepe = _p2selp;
+
+        playerOne.randomHash =_p1randhash;
+        playerTwo.randomHash =_p2randhash;
+
+        playerOne.moveHash =  _p1movehash;
+        playerTwo.moveHash =  _p2movehash;
+
+        playerOne.move = _p1move;
+        playerTwo.move =  _p2move; */
+
+}
 
 ////state restore string helpers.
     function substring(string str, uint startIndex, uint endIndex) internal pure returns (string) {
@@ -358,6 +456,16 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
         }
         return mint;
     }
+    function stringToBytes32(string memory source) returns (bytes32 result) {
+    bytes memory tempEmptyStringTest = bytes(source);
+    if (tempEmptyStringTest.length == 0) {
+        return 0x0;
+    }
+
+    assembly {
+        result := mload(add(source, 32))
+    }
+}
   
 //// encrption things.
     function returnHashFromMoveAndHash(uint8 _move, bytes32 _hash) public pure returns (bytes32) {
