@@ -83,7 +83,7 @@ contract('State continued battle.', function(accounts) {
        
         
         // bytes state builder.
-         var stats1 = (await battlesInstance.getBattleStats1.call(0));
+        /*  var stats1 = (await battlesInstance.getBattleStats1.call(0));
          console.log(stats1[2]);
          console.log("hoi " + Web3EthAbi.encodeParameters(['uint8','uint256','uint256','uint256','uint256'], [stats1[0], stats1[2],stats1[3],stats1[4],stats1[5]]));
                   
@@ -97,11 +97,11 @@ contract('State continued battle.', function(accounts) {
         _p1p1.substr(2, _p1p1.length) +
         _p1p2.substr(2, _p1p2.length) +
         _p2p1.substr(2, _p2p1.length) +
-        _p2p2.substr(2, _p2p2.length) ; 
+        _p2p2.substr(2, _p2p2.length) ;  */
         //console.log(state);
         //
-        //battlesInstance.continueGameFromState("Battle;000.Seq;003.Peps;0012003000110030.Spep;0000.rhash;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Hmoves;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Rmoves;0503" ,"0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9","0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9", moveHash, "0" )
-        battlesInstance.decomposeState(state , battleid/* "0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9","0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9", moveHash, "0" */ )
+        battlesInstance.continueGameFromState("Battle;000.Seq;003.Peps;0012003000110030.Spep;0000.rhash;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Hmoves;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Rmoves;0503" ,"0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9","0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9", moveHash, "0" )
+        //battlesInstance.decomposeState(state , battleid/* "0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9","0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9", moveHash, "0" */ )
         
       
     });
