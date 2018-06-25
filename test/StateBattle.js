@@ -4,12 +4,14 @@ let errTypes = require("../helpers/exceptions.js").errTypes;
 var ethereumjsabi = require('ethereumjs-abi') // replace with web3.utils? 1.0?
 var Web3Utils = require('web3-utils');
 var Web3EthAbi = require('web3-eth-abi');
+const Utils = require('./helpers/utils');
+const ethutil = require('ethereumjs-util');
 
 let battlesInstance;
 
 
-playerOneRandomHash = 0x0000000000000000000000000000000000000321;
-playerTwoRandomHash = 0x0000000000000000000000000000000000000123;
+playerOneRandomHash = 0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9;
+playerTwoRandomHash = 0xa7b77a420908ff0fc96fc28f92f2286c0dd9c659cc812e87b1e46eb687dcd617;
 
 
 let battleid = 0;
@@ -60,18 +62,6 @@ contract('State continued battle.', function(accounts) {
         
       });
 
-
-      function padBytes32(data){
-        console.log
-        let l = 66-data.length;
-        let x = data.substr(2, data.length);
-      
-        for(var i=0; i<l; i++) {
-          x = 0 + x
-        }
-        return '0x' + x
-      }
-
     it("Continue Game From State should excute. P1 submit move-seq 03.", async function(){
         playerOneRandomHash = (await battlesInstance.returnRandomHash(battleid,  {from: accounts[0]})) ;
         playerOneMove = 03; 
@@ -80,28 +70,27 @@ contract('State continued battle.', function(accounts) {
           [playerOneMove, playerOneRandomHash]
         ).toString("hex");
 
-       
-        
-        // bytes state builder.
-        /*  var stats1 = (await battlesInstance.getBattleStats1.call(0));
-         console.log(stats1[2]);
-         console.log("hoi " + Web3EthAbi.encodeParameters(['uint8','uint256','uint256','uint256','uint256'], [stats1[0], stats1[2],stats1[3],stats1[4],stats1[5]]));
-                  
-         
-        var _seq = padBytes32(web3.toHex(stats1[0]));
-        var _p1p1 = padBytes32(web3.toHex(stats1[2]));
-        var _p1p2 = padBytes32(web3.toHex(stats1[3]));
-        var _p2p1 = padBytes32(web3.toHex(stats1[4]));
-        var _p2p2 = padBytes32(web3.toHex(stats1[5]));
-        var state = _seq + 
-        _p1p1.substr(2, _p1p1.length) +
-        _p1p2.substr(2, _p1p2.length) +
-        _p2p1.substr(2, _p2p1.length) +
-        _p2p2.substr(2, _p2p2.length) ;  */
-        //console.log(state);
-        //
-        battlesInstance.continueGameFromState("Battle;000.Seq;003.Peps;0012003000110030.Spep;0000.rhash;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Hmoves;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Rmoves;0503" ,"0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9","0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9", moveHash, "0" )
-        //battlesInstance.decomposeState(state , battleid/* "0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9","0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9", moveHash, "0" */ )
+        var inputs = []
+        inputs.push(2)//seq
+        inputs.push(12)//p1p1h
+        inputs.push(30)//p1p2
+        inputs.push(11)//p2p1
+        inputs.push(30)//p2p2
+        inputs.push(0)//p1spep
+        inputs.push(0)//p2spep
+        inputs.push("0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a")//p1rhash
+        inputs.push("0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f")//p2rhash
+        inputs.push("0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a")//p1movehash
+        inputs.push("0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f")//p2movehash
+        inputs.push(05)//p2movehash
+        inputs.push(03)//p2movehash
+
+      //  console.log(inputs); 
+        stateCompressed= Utils.marshallState(inputs)
+       // console.log(stateCompressed);
+
+        //battlesInstance.continueGameFromState("Battle;000.Seq;003.Peps;0012003000110030.Spep;0000.rhash;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Hmoves;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Rmoves;0503" ,"0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9","0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9", moveHash, "0" )
+        battlesInstance.importState(stateCompressed, battleid);
         
       
     });
@@ -128,4 +117,69 @@ contract('State continued battle.', function(accounts) {
          
         );
       });
+
+
+      it("P1 submit switches pepe and load new randomHash", async function(){
+        playerOneRandomHash = (await battlesInstance.returnRandomHash(battleid,  {from: accounts[0]})) ;
+        seq =4
+        playerOneMove = 11; // selects second pepe. 
+        var moveHash = "0x" + ethereumjsabi.soliditySHA3(
+          ["uint8", "bytes32"],
+          [playerOneMove, playerOneRandomHash]
+        ).toString("hex");
+        battlesInstance.continueGame(battleid, seq, null, moveHash,  {from: accounts[0]});
+      
+      });
+      
+      it("P2 submit move and load new randomHash", async function(){
+        playerTwoRandomHash = (await battlesInstance.returnRandomHash(battleid,  {from: accounts[1]})) ;
+        seq = 5;
+        playerTwoMove = 3;
+        var moveHash = "0x" + ethereumjsabi.soliditySHA3(
+          ["uint8", "bytes32"],
+          [playerTwoMove, playerTwoRandomHash]
+        ).toString("hex"); 
+        battlesInstance.continueGame(battleid, seq, null, moveHash,  {from: accounts[1]});
+      });
+      
+      it("P1 continueGame doing move-reveal should work", async function(){
+        seq = 6;
+        battlesInstance.continueGame(battleid, seq, playerOneMove, playerOneRandomHash,  {from: accounts[0]});
+      });
+      
+      it("P2 continueGame doing move-reveal should work", async function(){
+        seq = 7;
+        battlesInstance.continueGame(battleid, seq, playerTwoMove, playerTwoRandomHash,  {from: accounts[1]});
+      });
+
+      it("P1's second pepe should have 13 health", async function() {
+        var stats = (await battlesInstance.getBattleStats1.call(0));
+        assert.notEqual(stats[3], 13);
+        //console.log(stats[3]);
+      });
+
+    /*   it("Should return full state, check for match", async function(){
+        var stats1 = (await battlesInstance.getBattleStats1.call(0));
+        var stats2 = (await battlesInstance.getBattleStats2.call(0));
+        var stats3 = (await battlesInstance.getBattleStats3.call(0));
+        console.log(
+         "Seq: " + stats1[0] +
+         " Active: " + stats1[1] +
+         " P1 Pep1 Health: " + stats1[2] +
+         " P1 Pep2 Health: " + stats1[3] +
+         " P2 Pep1 Health: " + stats1[4] +
+         " P2 Pep2 Health: " + stats1[5] +
+         " P1 Sel Pep: " + stats2[0] +
+         " P2 Sel Pep: " + stats2[1] +
+         " P1 RandHash: " + stats2[2] +
+         " P2 RandHash: " + stats2[3] +
+         " P1 MoveHash: " + stats3[0] +
+         " P2 MoveHash: " + stats3[1] +
+         " P1 Move: " + stats3[2] +
+         " P2 Move: " + stats3[3] 
+        );
+        
+      }); */
+      
+
 })

@@ -334,102 +334,113 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
    // continueGame(battleid, battle.seq, _move, _randOrMoveHash );(battleid, battle.seq, _move, _randOrMoveHash ); // using newly saved battle and seq and using send hash/move to continue.
   }  
 
-  function continueGameFromStateBytes(string fullState,  bytes32 _playerStateHashed, bytes _opponentStateHashed, bytes32 _randOrMoveHash, uint8 _move ) public { // not sure if correct useage of underscore
-/*     uint battleid = 0;
-    Battle storage battle = battles[battleid];  */
-       
-   // require(recoverSigner(_playerStateHashed, _opponentStateHashed) == battle.players[getOpponent(getPlayerOneOrTwo(battleid, msg.sender))].playerAddress);
-    //client side hash the full state. (contract adds, healths....ect) and called it '_playerStateHashed' AKA message, 
-    //use the opponent's version '_opponentStateHashed' AKA signature. should return the adress of opponent and if so. both parties agreed on state.
+  //  function importState1(uint8 _battleid, uint8 _seq, uint256 _p1p)
 
-/*     require(battle.seq < 999);
-    battle.seq = .. + 1;
-
-
-    Player storage playerOne = battle.players[0];
-    Player storage playerTwo = battle.players[1];
-
-    playerOne.pepes[0].health =
-    playerOne.pepes[1].health = 
-    playerTwo.pepes[0].health = 
-    playerTwo.pepes[1].health = 
-
-    
-    playerOne.selectedPepe = 
-    playerTwo.selectedPepe = 
-
-    playerOne.randomHash =
-    playerTwo.randomHash =
-
-    playerOne.moveHash =  
-    playerTwo.moveHash =
-
-    playerOne.move =
-    playerTwo.move =  */
-
-   // continueGame(battleid, battle.seq, _move, _randOrMoveHash );(battleid, battle.seq, _move, _randOrMoveHash ); // using newly saved battle and seq and using send hash/move to continue.
-  }  
-
-function decomposeState(bytes _state, uint8 battleid) public 
+function importState(bytes _state, uint8 battleid) public 
   returns(
     uint8 _seq,  
-    uint256 _p1p1h, 
+     uint256 _p1p1h, 
     uint256 _p1p2h, 
     uint256 _p2p1h, 
-    uint256 _p2p2h) {
-    
-    assembly {
-      _seq := mload(add(_state, 32))
-      _p1p1h := mload(add(_state, 64))
-      _p1p2h := mload(add(_state, 96))
-      _p2p1h := mload(add(_state, 128))
-      _p2p2h := mload(add(_state, 160))
-    }
-    setState(battleid,_seq,_p1p1h,_p1p2h,_p2p1h,_p2p2h);
-}
-
-function setState(
-    uint8 _battleid, 
-    uint8 _seq, 
-    uint256 _p1p1h,
-    uint256 _p1p2h,
-    uint256 _p2p1h, 
-    uint256 _p2p2h//,
-   /*  uint8 _p1selp,
+    uint256 _p2p2h,
+     uint8 _p1selp,
     uint8 _p2selp,
     bytes32 _p1randhash,
     bytes32 _p2randhash,
     bytes32 _p1movehash,
     bytes32 _p2movehash,
     uint8 _p1move,
-    uint8 _p2move */
+    uint8 _p2move  ) {
+    
+    assembly {
+      _seq := mload(add(_state, 32))
+       _p1p1h := mload(add(_state, 64))
+      _p1p2h := mload(add(_state, 96))
+      _p2p1h := mload(add(_state, 128))
+      _p2p2h := mload(add(_state, 160)) 
+    }
+    setState(battleid,_seq, _p1p1h,_p1p2h,_p2p1h,_p2p2h);
+
+    assembly {
+      _p1selp := mload(add(_state, 192))
+       _p2selp := mload(add(_state, 224))
+      _p1randhash := mload(add(_state, 256))
+      _p2randhash := mload(add(_state, 288))
+    }
+    setState2(battleid,_p1selp, _p2selp,_p1randhash,_p2randhash);
+
+    assembly {
+      _p1movehash := mload(add(_state, 320))
+       _p2movehash := mload(add(_state, 352))
+      _p1move := mload(add(_state, 384))
+      _p2move := mload(add(_state, 416))
+    }
+    setState3(battleid,_p1movehash, _p2movehash,_p1move,_p2move);
+
+    // continueGame(battleid, _seq, _move, _randOrMoveHash );(battleid, battle.seq, _move, _randOrMoveHash ); // using newly saved battle and seq and using send hash/move to continue.
+}
+
+function setState(
+    uint8 _battleid, 
+    uint8 _seq ,
+     uint256 _p1p1h,
+    uint256 _p1p2h,
+    uint256 _p2p1h, 
+    uint256 _p2p2h
      ) internal {
 
         uint battleid = _battleid;
         Battle storage battle = battles[battleid];
-      //  require(battle.seq < _seq);
+        require(battle.seq < _seq);
         battle.seq = _seq +1;
         Player storage playerOne = battle.players[0];
         Player storage playerTwo = battle.players[1];
-        playerOne.pepes[0].health = _p1p1h;
+         playerOne.pepes[0].health = _p1p1h;
         playerOne.pepes[1].health = _p1p2h;
         playerTwo.pepes[0].health = _p2p1h;
-        playerTwo.pepes[1].health = _p2p2h;
+        playerTwo.pepes[1].health = _p2p2h; 
 
-       /*  
+}
+function setState2(
+    uint8 _battleid, 
+      uint8 _p1selp,
+    uint8 _p2selp,
+    bytes32 _p1randhash,
+    bytes32 _p2randhash
+     ) internal {
+
+        uint battleid = _battleid;
+        Battle storage battle = battles[battleid];
+        Player storage playerOne = battle.players[0];
+        Player storage playerTwo = battle.players[1];
+
         playerOne.selectedPepe = _p1selp;
         playerTwo.selectedPepe = _p2selp;
 
         playerOne.randomHash =_p1randhash;
         playerTwo.randomHash =_p2randhash;
+}
+
+function setState3(
+    uint8 _battleid, 
+      bytes32 _p1movehash,
+    bytes32 _p2movehash,
+    uint8 _p1move,
+    uint8 _p2move  
+     ) internal {
+
+        uint battleid = _battleid;
+        Battle storage battle = battles[battleid];
+        Player storage playerOne = battle.players[0];
+        Player storage playerTwo = battle.players[1];
 
         playerOne.moveHash =  _p1movehash;
         playerTwo.moveHash =  _p2movehash;
 
         playerOne.move = _p1move;
-        playerTwo.move =  _p2move; */
-
+        playerTwo.move =  _p2move; 
 }
+
 
 ////state restore string helpers.
     function substring(string str, uint startIndex, uint endIndex) internal pure returns (string) {

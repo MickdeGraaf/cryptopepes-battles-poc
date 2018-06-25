@@ -197,6 +197,7 @@ it("P1 continueGame with a lower seq should revert", async function() {
 it("P1 submit switches pepe and load new randomHash", async function(){
   playerOneRandomHash = (await battlesInstance.returnRandomHash(battleid,  {from: accounts[0]})) ;
   seq = seq +=1;
+  console.log(playerOneRandomHash);
   playerOneMove = 11; // selects second pepe. 
   var moveHash = "0x" + ethereumjsabi.soliditySHA3(
     ["uint8", "bytes32"],
@@ -230,8 +231,32 @@ it("P2 continueGame doing move-reveal should work", async function(){
 it("P1's second pepe should have less health", async function() {
   var stats = (await battlesInstance.getBattleStats1.call(0));
   assert.notEqual(stats[3], startHealth);
+  console.log(stats[3]);
 });
-
+/* 
+it("Should return full state, check for match", async function(){
+  var stats1 = (await battlesInstance.getBattleStats1.call(0));
+  var stats2 = (await battlesInstance.getBattleStats2.call(0));
+  var stats3 = (await battlesInstance.getBattleStats3.call(0));
+  console.log(
+   "Seq: " + stats1[0] +
+   " Active: " + stats1[1] +
+   " P1 Pep1 Health: " + stats1[2] +
+   " P1 Pep2 Health: " + stats1[3] +
+   " P2 Pep1 Health: " + stats1[4] +
+   " P2 Pep2 Health: " + stats1[5] +
+   " P1 Sel Pep: " + stats2[0] +
+   " P2 Sel Pep: " + stats2[1] +
+   " P1 RandHash: " + stats2[2] +
+   " P2 RandHash: " + stats2[3] +
+   " P1 MoveHash: " + stats3[0] +
+   " P2 MoveHash: " + stats3[1] +
+   " P1 Move: " + stats3[2] +
+   " P2 Move: " + stats3[3] 
+  );
+  
+});
+ */
 it("P1 submit move and load new randomHash", async function(){
   playerOneRandomHash = (await battlesInstance.returnRandomHash(battleid,  {from: accounts[0]})) ;
   seq = seq +=1;
