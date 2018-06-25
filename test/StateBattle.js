@@ -4,6 +4,7 @@ let errTypes = require("../helpers/exceptions.js").errTypes;
 var ethereumjsabi = require('ethereumjs-abi') // replace with web3.utils? 1.0?
 var Web3Utils = require('web3-utils');
 var Web3EthAbi = require('web3-eth-abi');
+var Web3General = require('web3-eth');
 const Utils = require('./helpers/utils');
 const ethutil = require('ethereumjs-util');
 
@@ -88,11 +89,36 @@ contract('State continued battle.', function(accounts) {
       //  console.log(inputs); 
         stateCompressed= Utils.marshallState(inputs)
        // console.log(stateCompressed);
+     
+       var stateHashed = Web3Utils.soliditySha3(stateCompressed).toString("hex");
+       var opponentsignature = web3.eth.sign(accounts[1],stateHashed);
 
         //battlesInstance.continueGameFromState("Battle;000.Seq;003.Peps;0012003000110030.Spep;0000.rhash;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Hmoves;0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f.Rmoves;0503" ,"0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9","0x51e0466ae9ad217ddde891d5d5e00925ce2b92e577cd966aab00863823bfb6c9", moveHash, "0" )
-        battlesInstance.importState(stateCompressed, battleid);
+        battlesInstance.importState(stateCompressed, battleid/* ,opponentsignature */);
         
       
+    });
+
+    it("Should print sign", async function(){
+        var inputs = []
+        inputs.push(2)//seq
+        inputs.push(12)//p1p1h
+        inputs.push(30)//p1p2
+        inputs.push(11)//p2p1
+        inputs.push(30)//p2p2
+        inputs.push(0)//p1spep
+        inputs.push(0)//p2spep
+        inputs.push("0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a")//p1rhash
+        inputs.push("0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f")//p2rhash
+        inputs.push("0xe1f5836ec5a295e2471f91327f18c1fa9a54c272d17437980a74896e6bfb396a")//p1movehash
+        inputs.push("0xa2ba5383d7ac579024d84bfc598ef55b6846698370d5600c246858d0c16b4f5f")//p2movehash
+        inputs.push(05)//p2movehash
+        inputs.push(03)//p2movehash
+        stateCompressed= Utils.marshallState(inputs)
+        
+        var stateHashed = Web3Utils.soliditySha3(stateCompressed).toString("hex");
+        console.log( web3.eth.sign(accounts[0],stateHashed));
+        
     });
 
     it("Should return full state, Should be filled.", async function(){

@@ -42,6 +42,8 @@ contract BattlesState {
         return (battles[_battleid].players[0].moveHash,        battles[_battleid].players[1].moveHash,        battles[_battleid].players[0].move,        battles[_battleid].players[1].move    );
     }
 
+
+
   function newBattle(uint256[] _pepes, bytes32 _randomHash, address _oponent) payable public {
       Battle storage battle = battles[battleCounter]; // creates new battle with ID of battleCounter
       battleCounter += 1; // increases for next battle to be higher
@@ -336,7 +338,7 @@ Final step is to seperate state data to allow for dynamic amounts of pepe,  */
 
   //  function importState1(uint8 _battleid, uint8 _seq, uint256 _p1p)
 
-function importState(bytes _state, uint8 battleid) public 
+function importState(bytes _state, uint8 battleid /* bytes _opponentSignature */) public 
   returns(
     uint8 _seq,  
      uint256 _p1p1h, 
@@ -351,6 +353,8 @@ function importState(bytes _state, uint8 battleid) public
     bytes32 _p2movehash,
     uint8 _p1move,
     uint8 _p2move  ) {
+
+      //   require(recoverSigner(_state, _opponentSignature) == battle.players[getOpponent(getPlayerOneOrTwo(battleid, msg.sender))].playerAddress);
     
     assembly {
       _seq := mload(add(_state, 32))
