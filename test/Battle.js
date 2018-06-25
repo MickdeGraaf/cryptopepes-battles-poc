@@ -197,7 +197,6 @@ it("P1 continueGame with a lower seq should revert", async function() {
 it("P1 submit switches pepe and load new randomHash", async function(){
   playerOneRandomHash = (await battlesInstance.returnRandomHash(battleid,  {from: accounts[0]})) ;
   seq = seq +=1;
-  console.log(playerOneRandomHash);
   playerOneMove = 11; // selects second pepe. 
   var moveHash = "0x" + ethereumjsabi.soliditySHA3(
     ["uint8", "bytes32"],
@@ -231,7 +230,6 @@ it("P2 continueGame doing move-reveal should work", async function(){
 it("P1's second pepe should have less health", async function() {
   var stats = (await battlesInstance.getBattleStats1.call(0));
   assert.notEqual(stats[3], startHealth);
-  console.log(stats[3]);
 });
 /* 
 it("Should return full state, check for match", async function(){

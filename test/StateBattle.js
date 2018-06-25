@@ -154,7 +154,7 @@ contract('State continued battle.', function(accounts) {
 
       it("P1's second pepe should have 13 health", async function() {
         var stats = (await battlesInstance.getBattleStats1.call(0));
-        assert.notEqual(stats[3], 13);
+        assert.equal(stats[3]+"", "13");
         //console.log(stats[3]);
       });
 
